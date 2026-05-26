@@ -29,3 +29,7 @@ export function currentWordIndex(words: WordTimestamp[] | null, positionMs: numb
 export function hasTimedLyrics(lines: LrcLine[]) {
   return lines.some((line, index) => line.timestampMs > 0 || (index > 0 && line.timestampMs !== lines[index - 1].timestampMs))
 }
+
+export function sourceProvidesTiming(source: string | null | undefined) {
+  return source === 'lrc_file' || source === 'generated' || source === 'manual'
+}

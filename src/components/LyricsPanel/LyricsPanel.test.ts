@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 
-import { currentLineIndex, currentWordIndex, estimatedUntimedLineIndex, hasTimedLyrics } from './lyricsTiming'
+import { currentLineIndex, currentWordIndex, estimatedUntimedLineIndex, hasTimedLyrics, sourceProvidesTiming } from './lyricsTiming'
 import type { LrcLine } from '../../types'
 
 function line(timestampMs: number, text: string): LrcLine {
@@ -16,6 +16,13 @@ describe('lyrics timing helpers', () => {
   test('detects real line timing instead of plain embedded lyrics', () => {
     expect(hasTimedLyrics([line(0, 'plain one'), line(0, 'plain two')])).toBe(false)
     expect(hasTimedLyrics([line(0, 'intro'), line(12_000, 'verse')])).toBe(true)
+  })
+
+  test('treats timestamped lyric sources as timed even when the only timestamp is zero', () => {
+    expect(sourceProvidesTiming('lrc_file')).toBe(true)
+    expect(sourceProvidesTiming('generated')).toBe(true)
+    expect(sourceProvidesTiming('manual')).toBe(true)
+    expect(sourceProvidesTiming('embedded')).toBe(false)
   })
 
   test('resolves active timed lyric line from playback position', () => {

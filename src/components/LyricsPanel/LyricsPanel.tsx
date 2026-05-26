@@ -7,7 +7,14 @@ import { useLyricsStore } from '../../stores/lyricsStore'
 import { usePlayerStore } from '../../stores/playerStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import type { LrcLine } from '../../types'
-import { currentLineIndex, currentWordIndex, estimatedUntimedLineIndex, estimatedUntimedTimestamp, hasTimedLyrics } from './lyricsTiming'
+import {
+  currentLineIndex,
+  currentWordIndex,
+  estimatedUntimedLineIndex,
+  estimatedUntimedTimestamp,
+  hasTimedLyrics,
+  sourceProvidesTiming,
+} from './lyricsTiming'
 
 const lyricsModes = [
   { labelKey: 'lyrics.original', value: 'original' },
@@ -62,7 +69,7 @@ export function LyricsPanel() {
   const saveLrcForTrack = useLyricsStore((state) => state.saveLrcForTrack)
 
   const lines = useMemo(() => lyricsData?.lines ?? [], [lyricsData])
-  const timedLyrics = hasTimedLyrics(lines)
+  const timedLyrics = hasTimedLyrics(lines) || (lines.length > 0 && sourceProvidesTiming(lyricsData?.source))
   const durationMs = currentTrack?.durationMs ?? 0
   const estimatedLyrics = !timedLyrics && lines.length > 0 && durationMs > 0
   const adjustedPositionMs = Math.max(0, positionMs + lyricsOffsetMs)
