@@ -1,4 +1,4 @@
-import type { LrcLine } from '../../types'
+import type { LrcLine, WordTimestamp } from '../../types'
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value))
@@ -19,6 +19,11 @@ export function estimatedUntimedTimestamp(index: number, lineCount: number, dura
   if (lineCount <= 0 || durationMs <= 0) return null
   if (lineCount === 1) return 0
   return Math.round((clamp(index, 0, lineCount - 1) / (lineCount - 1)) * durationMs)
+}
+
+export function currentWordIndex(words: WordTimestamp[] | null, positionMs: number) {
+  if (!words || words.length === 0) return -1
+  return words.reduce((currentIndex, word, index) => (word.timestampMs <= positionMs ? index : currentIndex), -1)
 }
 
 export function hasTimedLyrics(lines: LrcLine[]) {

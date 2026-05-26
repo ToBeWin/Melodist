@@ -2113,7 +2113,7 @@ button {
   cursor: default;
 }
 
-.lyric-line span {
+.lyric-line .lyric-time {
   color: var(--text-muted);
   font-family: "JetBrains Mono", monospace;
   font-size: 12px;
@@ -2133,6 +2133,23 @@ button {
   color: var(--text-muted);
   font-size: 13px;
   line-height: 1.45;
+}
+
+.lyric-word {
+  display: inline-block;
+  margin-right: 0.28em;
+  color: inherit;
+  font: inherit;
+  transition: color 150ms var(--ease-standard), opacity 150ms var(--ease-standard);
+}
+
+.lyric-word.past {
+  opacity: 0.62;
+}
+
+.lyric-line.current .lyric-word.active {
+  color: var(--text-primary);
+  text-shadow: 0 0 18px rgba(167, 139, 250, 0.26);
 }
 
 .lyric-line.past {
@@ -2158,7 +2175,7 @@ button {
   transform: translateX(4px);
 }
 
-.lyric-line.current span {
+.lyric-line.current .lyric-time {
   color: var(--accent);
 }
 

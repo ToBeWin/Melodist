@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 
-import { currentLineIndex, estimatedUntimedLineIndex, hasTimedLyrics } from './lyricsTiming'
+import { currentLineIndex, currentWordIndex, estimatedUntimedLineIndex, hasTimedLyrics } from './lyricsTiming'
 import type { LrcLine } from '../../types'
 
 function line(timestampMs: number, text: string): LrcLine {
@@ -32,5 +32,17 @@ describe('lyrics timing helpers', () => {
     expect(estimatedUntimedLineIndex(4, 50_000, 100_000)).toBe(2)
     expect(estimatedUntimedLineIndex(4, 100_000, 100_000)).toBe(3)
     expect(estimatedUntimedLineIndex(4, 10_000, 0)).toBe(-1)
+  })
+
+  test('resolves active word from extended LRC word timestamps', () => {
+    const words = [
+      { timestampMs: 1_000, word: 'Hello' },
+      { timestampMs: 1_500, word: 'world' },
+    ]
+
+    expect(currentWordIndex(words, 999)).toBe(-1)
+    expect(currentWordIndex(words, 1_000)).toBe(0)
+    expect(currentWordIndex(words, 1_700)).toBe(1)
+    expect(currentWordIndex(null, 1_700)).toBe(-1)
   })
 })

@@ -7,7 +7,7 @@ import { useLyricsStore } from '../../stores/lyricsStore'
 import { usePlayerStore } from '../../stores/playerStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import type { LrcLine } from '../../types'
-import { currentLineIndex, estimatedUntimedLineIndex, estimatedUntimedTimestamp, hasTimedLyrics } from './lyricsTiming'
+import { currentLineIndex, currentWordIndex, estimatedUntimedLineIndex, estimatedUntimedTimestamp, hasTimedLyrics } from './lyricsTiming'
 
 const lyricsModes = [
   { labelKey: 'lyrics.original', value: 'original' },
@@ -169,11 +169,28 @@ export function LyricsPanel() {
             const isCurrent = index === activeIndex
             const isPast = activeIndex >= 0 && index < activeIndex
             const className = `lyric-line ${isCurrent ? 'current' : isPast ? 'past' : 'future'}`
+            const activeWordIndex =
+              isCurrent && displayMode !== 'translated'
+                ? currentWordIndex(line.wordTimestamps, adjustedPositionMs)
+                : -1
+            const showWordTiming =
+              displayMode !== 'translated' && Boolean(line.wordTimestamps?.length)
             const content = (
               <>
-                {timedLyrics ? <span>{formatDurationMs(line.timestampMs)}</span> : null}
+                {timedLyrics ? <span className="lyric-time">{formatDurationMs(line.timestampMs)}</span> : null}
                 <div>
-                  <p>{lineText(line, displayMode)}</p>
+                  <p>
+                    {showWordTiming
+                      ? line.wordTimestamps?.map((word, wordIndex) => (
+                          <span
+                            className={`lyric-word ${wordIndex === activeWordIndex ? 'active' : wordIndex < activeWordIndex ? 'past' : ''}`}
+                            key={`${word.timestampMs}-${wordIndex}`}
+                          >
+                            {word.word}
+                          </span>
+                        ))
+                      : lineText(line, displayMode)}
+                  </p>
                   {displayMode === 'bilingual' && line.translatedText ? <small>{line.translatedText}</small> : null}
                 </div>
               </>
