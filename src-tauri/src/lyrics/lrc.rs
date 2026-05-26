@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::types::LrcLine;
+use crate::types::{LrcLine, WordTimestamp};
 
 /// Error returned when an LRC timestamp cannot be parsed.
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -56,13 +56,13 @@ pub fn parse_lrc(input: &str) -> Result<Vec<LrcLine>, LrcParseError> {
             continue;
         }
 
-        let text = remainder.trim_start().to_string();
+        let (text, word_timestamps) = parse_word_timestamps(remainder, line_number)?;
         for timestamp_ms in timestamps {
             lines.push(LrcLine {
                 timestamp_ms,
                 text: text.clone(),
                 translated_text: None,
-                word_timestamps: None,
+                word_timestamps: word_timestamps.clone(),
             });
         }
     }
@@ -81,11 +81,85 @@ pub fn write_lrc(lines: &[LrcLine]) -> String {
 
     for line in lines {
         output.push_str(&format_timestamp(line.timestamp_ms));
-        output.push_str(&line.text);
+        output.push_str(&write_line_text(line));
         output.push('\n');
     }
 
     output
+}
+
+fn parse_word_timestamps(
+    text: &str,
+    line_number: usize,
+) -> Result<(String, Option<Vec<WordTimestamp>>), LrcParseError> {
+    let mut display_text = String::new();
+    let mut word_timestamps = Vec::new();
+    let mut cursor = 0;
+
+    while let Some(relative_open) = text[cursor..].find('<') {
+        let open = cursor + relative_open;
+        display_text.push_str(&text[cursor..open]);
+
+        let tag_start = open + 1;
+        let Some(relative_close) = text[tag_start..].find('>') else {
+            display_text.push_str(&text[open..]);
+            cursor = text.len();
+            break;
+        };
+
+        let close = tag_start + relative_close;
+        let tag = &text[tag_start..close];
+        if !is_timestamp_candidate(tag) {
+            display_text.push('<');
+            display_text.push_str(tag);
+            display_text.push('>');
+            cursor = close + 1;
+            continue;
+        }
+
+        let timestamp_ms = parse_timestamp(tag).ok_or_else(|| LrcParseError::InvalidTimestamp {
+            line: line_number,
+            tag: tag.to_string(),
+        })?;
+        let word_start = close + 1;
+        let word_end = text[word_start..]
+            .find('<')
+            .map_or(text.len(), |relative_next| word_start + relative_next);
+        let word_segment = &text[word_start..word_end];
+        display_text.push_str(word_segment);
+        let word = word_segment.trim();
+        if !word.is_empty() {
+            word_timestamps.push(WordTimestamp {
+                timestamp_ms,
+                word: word.to_string(),
+            });
+        }
+        cursor = word_end;
+    }
+
+    if cursor < text.len() {
+        display_text.push_str(&text[cursor..]);
+    }
+
+    Ok((
+        display_text.trim_start().to_string(),
+        (!word_timestamps.is_empty()).then_some(word_timestamps),
+    ))
+}
+
+fn write_line_text(line: &LrcLine) -> String {
+    let Some(word_timestamps) = &line.word_timestamps else {
+        return line.text.clone();
+    };
+    if word_timestamps.is_empty() {
+        return line.text.clone();
+    }
+
+    word_timestamps
+        .iter()
+        .map(|word| format!("{}{}", format_word_timestamp(word.timestamp_ms), word.word))
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 fn is_timestamp_candidate(tag: &str) -> bool {
@@ -137,6 +211,12 @@ fn format_timestamp(timestamp_ms: u64) -> String {
     format!("[{minutes:02}:{seconds:02}.{centiseconds:02}]")
 }
 
+fn format_word_timestamp(timestamp_ms: u64) -> String {
+    format_timestamp(timestamp_ms)
+        .replace('[', "<")
+        .replace(']', ">")
+}
+
 #[cfg(test)]
 mod tests {
     use super::{parse_lrc, write_lrc};
@@ -181,6 +261,24 @@ mod tests {
     }
 
     #[test]
+    fn parses_extended_word_timestamps() {
+        let parsed = parse_lrc("[00:01.00]<00:01.10>Hello <00:01.50>world")
+            .expect("extended LRC should parse");
+
+        assert_eq!(parsed.len(), 1);
+        assert_eq!(parsed[0].text, "Hello world");
+        let words = parsed[0]
+            .word_timestamps
+            .as_ref()
+            .expect("word timestamps should be captured");
+        assert_eq!(words.len(), 2);
+        assert_eq!(words[0].timestamp_ms, 1_100);
+        assert_eq!(words[0].word, "Hello");
+        assert_eq!(words[1].timestamp_ms, 1_500);
+        assert_eq!(words[1].word, "world");
+    }
+
+    #[test]
     fn ignores_metadata_tags() {
         let parsed = parse_lrc("[ar:MetaPure Lab]\n[ti:Melodist]\n[00:03.00]Only lyrics")
             .expect("metadata should be ignored");
@@ -215,5 +313,23 @@ mod tests {
         assert_eq!(parsed[0].text, lines[0].text);
         assert_eq!(parsed[1].timestamp_ms, lines[1].timestamp_ms);
         assert_eq!(parsed[1].text, lines[1].text);
+    }
+
+    #[test]
+    fn writer_preserves_word_level_timestamps() {
+        let parsed = parse_lrc("[00:01.00]<00:01.10>Hello <00:01.50>world")
+            .expect("extended LRC should parse");
+        let written = write_lrc(&parsed);
+        let reparsed = parse_lrc(&written).expect("written extended LRC should parse");
+        let words = reparsed[0]
+            .word_timestamps
+            .as_ref()
+            .expect("word timestamps should roundtrip");
+
+        assert_eq!(reparsed[0].text, "Hello world");
+        assert_eq!(words[0].timestamp_ms, 1_100);
+        assert_eq!(words[0].word, "Hello");
+        assert_eq!(words[1].timestamp_ms, 1_500);
+        assert_eq!(words[1].word, "world");
     }
 }
