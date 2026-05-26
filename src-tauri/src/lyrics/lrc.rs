@@ -22,6 +22,7 @@ pub enum LrcParseError {
 /// ignored.
 pub fn parse_lrc(input: &str) -> Result<Vec<LrcLine>, LrcParseError> {
     let mut lines = Vec::new();
+    let offset_ms = parse_lrc_offset(input);
 
     for (index, raw_line) in input.lines().enumerate() {
         let line_number = index + 1;
@@ -46,7 +47,7 @@ pub fn parse_lrc(input: &str) -> Result<Vec<LrcLine>, LrcParseError> {
                         line: line_number,
                         tag: tag.to_string(),
                     })?;
-                timestamps.push(timestamp_ms);
+                timestamps.push(apply_timestamp_offset(timestamp_ms, offset_ms));
             }
 
             remainder = &after_open[close_index + 1..];
@@ -56,7 +57,7 @@ pub fn parse_lrc(input: &str) -> Result<Vec<LrcLine>, LrcParseError> {
             continue;
         }
 
-        let (text, word_timestamps) = parse_word_timestamps(remainder, line_number)?;
+        let (text, word_timestamps) = parse_word_timestamps(remainder, line_number, offset_ms)?;
         for timestamp_ms in timestamps {
             lines.push(LrcLine {
                 timestamp_ms,
@@ -88,9 +89,31 @@ pub fn write_lrc(lines: &[LrcLine]) -> String {
     output
 }
 
+fn parse_lrc_offset(input: &str) -> i64 {
+    input
+        .lines()
+        .filter_map(|line| {
+            let line = line.trim_start();
+            let value = line.strip_prefix("[offset:")?;
+            let end = value.find(']')?;
+            value[..end].trim().parse::<i64>().ok()
+        })
+        .next_back()
+        .unwrap_or(0)
+}
+
+fn apply_timestamp_offset(timestamp_ms: u64, offset_ms: i64) -> u64 {
+    if offset_ms >= 0 {
+        timestamp_ms.saturating_add(offset_ms.unsigned_abs())
+    } else {
+        timestamp_ms.saturating_sub(offset_ms.unsigned_abs())
+    }
+}
+
 fn parse_word_timestamps(
     text: &str,
     line_number: usize,
+    offset_ms: i64,
 ) -> Result<(String, Option<Vec<WordTimestamp>>), LrcParseError> {
     let mut display_text = String::new();
     let mut word_timestamps = Vec::new();
@@ -130,7 +153,7 @@ fn parse_word_timestamps(
         let word = word_segment.trim();
         if !word.is_empty() {
             word_timestamps.push(WordTimestamp {
-                timestamp_ms,
+                timestamp_ms: apply_timestamp_offset(timestamp_ms, offset_ms),
                 word: word.to_string(),
             });
         }
@@ -245,6 +268,19 @@ mod tests {
         assert_eq!(parsed[0].text, "Repeated chorus");
         assert_eq!(parsed[1].timestamp_ms, 20_500);
         assert_eq!(parsed[1].text, "Repeated chorus");
+    }
+
+    #[test]
+    fn applies_global_lrc_offset_to_line_and_word_timestamps() {
+        let parsed =
+            parse_lrc("[offset:-500]\n[00:01.00]<00:01.10>Hello").expect("offset LRC should parse");
+        let words = parsed[0]
+            .word_timestamps
+            .as_ref()
+            .expect("word timestamp should parse");
+
+        assert_eq!(parsed[0].timestamp_ms, 500);
+        assert_eq!(words[0].timestamp_ms, 600);
     }
 
     #[test]
