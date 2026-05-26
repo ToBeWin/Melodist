@@ -34,6 +34,54 @@ export function queueAfterClearingPlayed<T>(queue: T[], currentIndex: number | n
   }
 }
 
+export function queueAfterRemovingIndex<T>(
+  queue: T[],
+  currentIndex: number | null,
+  removeIndex: number,
+  currentTrack: T | null,
+) {
+  if (removeIndex < 0 || removeIndex >= queue.length) {
+    return { currentIndex, queue }
+  }
+
+  const nextQueue = queue.filter((_, index) => index !== removeIndex)
+  if (nextQueue.length === 0) {
+    return currentTrack
+      ? { currentIndex: 0, queue: [currentTrack] }
+      : { currentIndex: null, queue: [] }
+  }
+
+  if (currentIndex === null) {
+    return { currentIndex: null, queue: nextQueue }
+  }
+
+  if (removeIndex === currentIndex) {
+    return { currentIndex: Math.min(removeIndex, nextQueue.length - 1), queue: nextQueue }
+  }
+
+  return {
+    currentIndex: removeIndex < currentIndex ? currentIndex - 1 : currentIndex,
+    queue: nextQueue,
+  }
+}
+
+export function queueAfterAppendingTrack<T>(
+  queue: T[],
+  currentIndex: number | null,
+  currentTrack: T | null,
+  track: T,
+) {
+  if (queue.length > 0) {
+    return { currentIndex, queue: [...queue, track] }
+  }
+
+  if (currentTrack) {
+    return { currentIndex: 0, queue: [currentTrack, track] }
+  }
+
+  return { currentIndex: null, queue: [track] }
+}
+
 export function shouldPersistPlayerStateTransition(
   previousTrackPath: string | null,
   nextTrackPath: string | null,

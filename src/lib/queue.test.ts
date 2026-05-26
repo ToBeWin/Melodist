@@ -2,7 +2,9 @@ import { describe, expect, test } from 'vitest'
 
 import {
   currentIndexAfterQueueMove,
+  queueAfterAppendingTrack,
   queueAfterClearingPlayed,
+  queueAfterRemovingIndex,
   queueRecoveryAfterPlaybackFailure,
   shouldPersistPlayerStateTransition,
   shouldScrollQueueToCurrent,
@@ -72,6 +74,45 @@ describe('queueAfterClearingPlayed', () => {
     })
     expect(queueAfterClearingPlayed(['a', 'b'], null)).toEqual({
       currentIndex: null,
+      queue: ['a', 'b'],
+    })
+  })
+})
+
+describe('queueAfterRemovingIndex', () => {
+  test('keeps the currently playing track as queue anchor when removing the only row', () => {
+    expect(queueAfterRemovingIndex(['a'], 0, 0, 'a')).toEqual({
+      currentIndex: 0,
+      queue: ['a'],
+    })
+  })
+
+  test('selects the next available row when removing the current queue item', () => {
+    expect(queueAfterRemovingIndex(['a', 'b', 'c'], 1, 1, 'b')).toEqual({
+      currentIndex: 1,
+      queue: ['a', 'c'],
+    })
+  })
+
+  test('adjusts current index when removing a row before the current item', () => {
+    expect(queueAfterRemovingIndex(['a', 'b', 'c'], 2, 0, 'c')).toEqual({
+      currentIndex: 1,
+      queue: ['b', 'c'],
+    })
+  })
+})
+
+describe('queueAfterAppendingTrack', () => {
+  test('appends to an existing queue without changing current index', () => {
+    expect(queueAfterAppendingTrack(['a'], 0, 'a', 'b')).toEqual({
+      currentIndex: 0,
+      queue: ['a', 'b'],
+    })
+  })
+
+  test('rebuilds a queue anchor from the current track when queue state is empty', () => {
+    expect(queueAfterAppendingTrack([], null, 'a', 'b')).toEqual({
+      currentIndex: 0,
       queue: ['a', 'b'],
     })
   })

@@ -4,7 +4,9 @@ import { translate } from '../lib/i18n'
 import { onPlayerOutputError, onPlayerStateUpdate, onPositionUpdate, tauriPlayer } from '../lib/tauri'
 import {
   currentIndexAfterQueueMove,
+  queueAfterAppendingTrack,
   queueAfterClearingPlayed,
+  queueAfterRemovingIndex,
   queueRecoveryAfterPlaybackFailure,
   shouldPersistPlayerStateTransition,
   shouldAutoSkipOutputError,
@@ -248,11 +250,11 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   },
   addToQueue: async (track) => {
     const state = get()
-    const queue = state.queue.length > 0 ? [...state.queue, track] : [track]
-    set({ queue, currentIndex: state.currentIndex })
-    persistPlaybackSession(queue, state.currentIndex, state.positionMs, state.shuffle, state.repeat)
+    const nextQueue = queueAfterAppendingTrack(state.queue, state.currentIndex, state.currentTrack, track)
+    set({ queue: nextQueue.queue, currentIndex: nextQueue.currentIndex })
+    persistPlaybackSession(nextQueue.queue, nextQueue.currentIndex, state.positionMs, state.shuffle, state.repeat)
     openQueuePanel()
-    await syncQueue(queue, state.currentIndex)
+    await syncQueue(nextQueue.queue, nextQueue.currentIndex)
   },
   playNext: async (track) => {
     const state = get()
@@ -268,29 +270,23 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   removeFromQueue: async (index) => {
     const state = get()
     if (index < 0 || index >= state.queue.length) return
-    const queue = state.queue.filter((_, queueIndex) => queueIndex !== index)
-    if (queue.length === 0) {
-      set({ queue: [], currentIndex: null })
-      persistPlaybackSession([], null, 0, state.shuffle, state.repeat)
+
+    const nextQueue = queueAfterRemovingIndex(state.queue, state.currentIndex, index, state.currentTrack)
+    const removedCurrent = state.currentIndex === index
+    const keptCurrentTrack =
+      Boolean(state.currentTrack) &&
+      nextQueue.queue.length === 1 &&
+      nextQueue.queue[0]?.id === state.currentTrack?.id &&
+      state.queue.length === 1
+
+    if (removedCurrent && !keptCurrentTrack && nextQueue.currentIndex !== null) {
+      await get().setQueueAndPlay(nextQueue.queue, nextQueue.currentIndex)
       return
     }
 
-    if (state.currentIndex === null) {
-      set({ queue, currentIndex: null })
-      persistPlaybackSession(queue, null, state.positionMs, state.shuffle, state.repeat)
-      return
-    }
-
-    if (index === state.currentIndex) {
-      const nextIndex = Math.min(index, queue.length - 1)
-      await get().setQueueAndPlay(queue, nextIndex)
-      return
-    }
-
-    const currentIndex = index < state.currentIndex ? state.currentIndex - 1 : state.currentIndex
-    set({ queue, currentIndex })
-    persistPlaybackSession(queue, currentIndex, state.positionMs, state.shuffle, state.repeat)
-    await syncQueue(queue, currentIndex)
+    set({ queue: nextQueue.queue, currentIndex: nextQueue.currentIndex })
+    persistPlaybackSession(nextQueue.queue, nextQueue.currentIndex, state.positionMs, state.shuffle, state.repeat)
+    await syncQueue(nextQueue.queue, nextQueue.currentIndex)
   },
   moveQueueTrack: async (index, direction) => {
     const targetIndex = index + direction
