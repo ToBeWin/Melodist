@@ -362,7 +362,7 @@ pub struct AppState {
 - Cover art: 48×48px, `rounded-lg`, click to open Now Playing full view
 - Progress bar: custom `<input type="range">` styled with CSS, draggable, shows hover time tooltip
 - Volume: identical range input, remember last value in `playerStore`
-- Keyboard shortcuts (global, registered via Tauri global shortcut plugin):
+- Window keyboard shortcuts, ignored while typing:
   - `Space`: play/pause
   - `←` / `→`: seek ±10s
   - `↑` / `↓`: volume ±5%
@@ -370,6 +370,13 @@ pub struct AppState {
   - `L`: toggle lyrics panel
   - `S`: toggle shuffle
   - `R`: cycle repeat mode
+- Global media shortcuts registered through the Tauri global shortcut plugin:
+  - `MediaPlayPause`: play/pause
+  - `MediaTrackNext`: next track
+  - `MediaTrackPrevious`: previous track
+  - `CommandOrControl+Alt+Space`: play/pause
+  - `CommandOrControl+Alt+Right`: next track
+  - `CommandOrControl+Alt+Left`: previous track
 
 **Track List (`components/Library/TrackList.tsx`):**
 - Virtualized with `@tanstack/react-virtual` — mandatory for libraries > 500 tracks
