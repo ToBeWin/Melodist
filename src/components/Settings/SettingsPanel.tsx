@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { Database, FileAudio2, Folder, Globe2, HardDrive, Keyboard, Languages, Plus, ShieldCheck, Trash2, Waves } from 'lucide-react'
 
 import { useI18n } from '../../lib/i18n'
@@ -6,7 +5,7 @@ import { tauriSettings } from '../../lib/tauri'
 import { useLibraryStore } from '../../stores/libraryStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { errorMessage, useToastStore } from '../../stores/toastStore'
-import type { AppLanguage, DataLocations } from '../../types'
+import type { AppLanguage } from '../../types'
 
 const supportedFormats = ['MP3', 'FLAC', 'M4A', 'AAC', 'OGG', 'OPUS', 'WAV', 'AIFF', 'APE', 'WV']
 
@@ -27,13 +26,13 @@ function SettingsSwitch({ enabled }: { enabled: boolean }) {
 
 export function SettingsPanel() {
   const { t } = useI18n()
-  const [dataLocations, setDataLocations] = useState<DataLocations | null>(null)
   const pushToast = useToastStore((state) => state.pushToast)
   const appLanguage = useSettingsStore((state) => state.appLanguage)
   const directories = useSettingsStore((state) => state.musicDirectories)
   const replayGainEnabled = useSettingsStore((state) => state.replayGainEnabled)
   const audioOutputDevice = useSettingsStore((state) => state.audioOutputDevice)
   const audioOutputDevices = useSettingsStore((state) => state.audioOutputDevices)
+  const dataLocations = useSettingsStore((state) => state.dataLocations)
   const removeMusicDirectory = useSettingsStore((state) => state.removeMusicDirectory)
   const chooseAndScanDirectory = useLibraryStore((state) => state.chooseAndScanDirectory)
   const toggleReplayGain = useSettingsStore((state) => state.toggleReplayGain)
@@ -54,16 +53,6 @@ export function SettingsPanel() {
       pushToast({ title: t('settings.clearCoverCache'), message: errorMessage(error), tone: 'error' })
     }
   }
-
-  useEffect(() => {
-    let cancelled = false
-    void tauriSettings.getDataLocations().then((locations) => {
-      if (!cancelled) setDataLocations(locations)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   return (
     <section className="settings-page" aria-label={t('app.settings')}>

@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
 import { defaultSettings, tauriLibrary, tauriPlayer, tauriSettings } from '../lib/tauri'
-import type { AppLanguage, AppSettings, AudioOutputDevice, TranslationProvider } from '../types'
+import type { AppLanguage, AppSettings, AudioOutputDevice, DataLocations, TranslationProvider } from '../types'
 
 type WhisperModel = AppSettings['whisperModel']
 type LyricsDisplayMode = AppSettings['lyricsDisplayMode']
@@ -26,8 +26,10 @@ interface SettingsStore {
   coverArtFallbackEnabled: boolean
   metadataNetworkEnabled: boolean
   audioOutputDevices: AudioOutputDevice[]
+  dataLocations: DataLocations | null
   load: () => Promise<void>
   loadAudioOutputDevices: () => Promise<void>
+  loadDataLocations: () => Promise<void>
   setAppLanguage: (language: AppLanguage) => Promise<void>
   addMusicDirectory: (path: string) => Promise<void>
   removeMusicDirectory: (path: string) => Promise<void>
@@ -80,6 +82,7 @@ const normalizeRepeat = (repeat: string): AppSettings['playbackRepeat'] =>
 export const useSettingsStore = create<SettingsStore>((set, get) => ({
   ...defaultSettings,
   audioOutputDevices: [],
+  dataLocations: null,
   load: async () => {
     try {
       const settings = await tauriSettings.load()
@@ -104,6 +107,14 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       set({ audioOutputDevices })
     } catch (error) {
       console.error('Failed to load audio output devices', error)
+    }
+  },
+  loadDataLocations: async () => {
+    try {
+      const dataLocations = await tauriSettings.getDataLocations()
+      set({ dataLocations })
+    } catch (error) {
+      console.error('Failed to load data locations', error)
     }
   },
   setAppLanguage: async (language) => {
@@ -217,5 +228,6 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
 
 void useSettingsStore.getState().load()
 void useSettingsStore.getState().loadAudioOutputDevices()
+void useSettingsStore.getState().loadDataLocations()
 
 export default useSettingsStore
