@@ -33,6 +33,7 @@ type TranslationKey =
   | 'common.back'
   | 'common.default'
   | 'common.details'
+  | 'common.dismissNotification'
   | 'common.localFile'
   | 'common.systemDefault'
   | 'common.unknown'
@@ -71,6 +72,7 @@ type TranslationKey =
   | 'library.importCompleteTitle'
   | 'library.importFailedTitle'
   | 'library.importIssueTitle'
+  | 'library.dropUnavailableTitle'
   | 'library.loadFailedTitle'
   | 'library.scanCompleteTitle'
   | 'library.scanFailedTitle'
@@ -276,6 +278,7 @@ const translations: Record<AppLanguage, Record<TranslationKey, string>> = {
     'common.back': 'Back',
     'common.default': 'default',
     'common.details': 'Details',
+    'common.dismissNotification': 'Dismiss notification',
     'common.localFile': 'Local file',
     'common.systemDefault': 'System default',
     'common.unknown': 'Unknown',
@@ -314,6 +317,7 @@ const translations: Record<AppLanguage, Record<TranslationKey, string>> = {
     'library.importCompleteTitle': 'Dropped import complete',
     'library.importFailedTitle': 'Dropped import failed',
     'library.importIssueTitle': 'Dropped import completed with issues',
+    'library.dropUnavailableTitle': 'File drop unavailable',
     'library.loadFailedTitle': 'Library load failed',
     'library.scanCompleteTitle': 'Library scan complete',
     'library.scanFailedTitle': 'Library scan failed',
@@ -516,6 +520,7 @@ const translations: Record<AppLanguage, Record<TranslationKey, string>> = {
     'common.back': '返回',
     'common.default': '默认',
     'common.details': '详情',
+    'common.dismissNotification': '关闭通知',
     'common.localFile': '本地文件',
     'common.systemDefault': '系统默认',
     'common.unknown': '未知',
@@ -554,6 +559,7 @@ const translations: Record<AppLanguage, Record<TranslationKey, string>> = {
     'library.importCompleteTitle': '拖拽导入完成',
     'library.importFailedTitle': '拖拽导入失败',
     'library.importIssueTitle': '拖拽导入完成，但有部分问题',
+    'library.dropUnavailableTitle': '文件拖拽不可用',
     'library.loadFailedTitle': '曲库加载失败',
     'library.scanCompleteTitle': '曲库扫描完成',
     'library.scanFailedTitle': '曲库扫描失败',

@@ -28,7 +28,7 @@ export function ToastViewport() {
               </details>
             ) : null}
           </div>
-          <button aria-label="Dismiss notification" type="button" onClick={() => dismissToast(toast.id)}>
+          <button aria-label={t('common.dismissNotification')} type="button" onClick={() => dismissToast(toast.id)}>
             <X size={14} />
           </button>
         </section>
