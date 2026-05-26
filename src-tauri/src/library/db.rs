@@ -1,10 +1,13 @@
 //! SQLite persistence for the local music library.
 
 use std::path::Path;
+use std::time::Duration;
 
 use rusqlite::{params, types::Type, Connection, OptionalExtension};
 
 use crate::types::{Album, Track};
+
+const DB_BUSY_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// SQLite database wrapper for the music library.
 pub struct Database {
@@ -15,6 +18,7 @@ impl Database {
     /// Opens a database and applies the current schema.
     pub fn open(path: &Path) -> Result<Self, rusqlite::Error> {
         let connection = Connection::open(path)?;
+        connection.busy_timeout(DB_BUSY_TIMEOUT)?;
         let database = Self { connection };
         database.migrate()?;
         Ok(database)
@@ -24,6 +28,7 @@ impl Database {
     #[cfg(test)]
     pub fn open_in_memory() -> Result<Self, rusqlite::Error> {
         let connection = Connection::open_in_memory()?;
+        connection.busy_timeout(DB_BUSY_TIMEOUT)?;
         let database = Self { connection };
         database.migrate()?;
         Ok(database)
@@ -408,6 +413,17 @@ mod tests {
             "melodist-db-test-{}-{suffix}.sqlite3",
             std::process::id()
         ))
+    }
+
+    #[test]
+    fn configures_busy_timeout_for_shared_database_access() {
+        let database = Database::open_in_memory().expect("database opens");
+        let busy_timeout_ms: i64 = database
+            .connection
+            .query_row("PRAGMA busy_timeout", [], |row| row.get(0))
+            .expect("busy timeout reads");
+
+        assert_eq!(busy_timeout_ms, 5_000);
     }
 
     #[test]
