@@ -8,6 +8,10 @@ library management, resilient playback, synchronized lyrics, queue control, and
 metadata, all stored on the user's device. Melodist does not include telemetry,
 analytics, or crash reporting.
 
+## Preview
+
+![Melodist desktop player showing the Now Playing view, queue, and synchronized lyrics](docs/images/melodist-app.png)
+
 ## Current Status
 
 This repository is in the late v0.1 beta / release-candidate track. The current
