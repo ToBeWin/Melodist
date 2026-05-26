@@ -21,7 +21,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        shell: bash
+        run: |
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git fetch --depth=1 origin "${GITHUB_SHA}"
+          git checkout --force FETCH_HEAD
 
       - name: Install Linux system dependencies
         if: runner.os == 'Linux'
