@@ -589,6 +589,7 @@ mod tests {
         assert!(columns.iter().any(|column| column == "play_count"));
         assert!(columns.iter().any(|column| column == "last_played"));
         assert_eq!(fts_tables, 1);
+        drop(database);
         fs::remove_file(path).expect("cleanup database");
     }
 }
