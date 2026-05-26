@@ -533,28 +533,40 @@ fn collect_directory_signature_entries(path: &Path, signature_entries: &mut Vec<
 /// Searches tracks by title, artist, or album.
 #[tauri::command]
 pub async fn search_tracks(app: AppHandle, query: String) -> Result<Vec<Track>, String> {
-    let database = open_database(&app)?;
-    database
-        .search_tracks(&query)
-        .map_err(|error| format!("Failed to search tracks: {error}"))
+    task::spawn_blocking(move || {
+        let database = open_database(&app)?;
+        database
+            .search_tracks(&query)
+            .map_err(|error| format!("Failed to search tracks: {error}"))
+    })
+    .await
+    .map_err(|error| format!("Search tracks task failed: {error}"))?
 }
 
 /// Returns all library tracks.
 #[tauri::command]
 pub async fn get_all_tracks(app: AppHandle) -> Result<Vec<Track>, String> {
-    let database = open_database(&app)?;
-    database
-        .all_tracks()
-        .map_err(|error| format!("Failed to load tracks: {error}"))
+    task::spawn_blocking(move || {
+        let database = open_database(&app)?;
+        database
+            .all_tracks()
+            .map_err(|error| format!("Failed to load tracks: {error}"))
+    })
+    .await
+    .map_err(|error| format!("Load tracks task failed: {error}"))?
 }
 
 /// Returns album summaries for the local library.
 #[tauri::command]
 pub async fn get_all_albums(app: AppHandle) -> Result<Vec<Album>, String> {
-    let database = open_database(&app)?;
-    database
-        .all_albums()
-        .map_err(|error| format!("Failed to load albums: {error}"))
+    task::spawn_blocking(move || {
+        let database = open_database(&app)?;
+        database
+            .all_albums()
+            .map_err(|error| format!("Failed to load albums: {error}"))
+    })
+    .await
+    .map_err(|error| format!("Load albums task failed: {error}"))?
 }
 
 /// Reveals a track file in the system file manager.
