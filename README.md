@@ -135,6 +135,7 @@ The current local validation baseline includes:
 - Frontend: `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build`
 - Rust: `cargo fmt --check`, `cargo clippy -- -D warnings`, `cargo test`
 - macOS bundle: `pnpm tauri build --ci --bundles app`
+- CI bundles: macOS `.app`, Windows NSIS `.exe`, Linux `.deb`, and Linux `.AppImage`
 
 ## v0.1 Scope
 
