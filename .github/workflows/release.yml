@@ -41,7 +41,9 @@ jobs:
         run: choco install nsis -y
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
