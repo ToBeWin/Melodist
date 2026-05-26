@@ -180,3 +180,7 @@ For local macOS packaging checks, `pnpm tauri build --ci` should produce:
 
 - `src-tauri/target/release/bundle/macos/Melodist.app`
 - `src-tauri/target/release/bundle/dmg/Melodist_0.1.0_aarch64.dmg`
+
+CI also builds Linux `.deb` and `.AppImage` bundles and the Windows NSIS installer
+on every push to `main`, so tagged releases should not be the first time those
+package formats are exercised.
