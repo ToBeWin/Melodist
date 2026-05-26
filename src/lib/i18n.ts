@@ -96,6 +96,18 @@ type TranslationKey =
   | 'now.status'
   | 'now.upcoming'
   | 'player.addFolderHint'
+  | 'player.error.audioOutput'
+  | 'player.error.nextTrack'
+  | 'player.error.playback'
+  | 'player.error.playbackControl'
+  | 'player.error.previousTrack'
+  | 'player.error.queuePlayback'
+  | 'player.error.queueRecovery'
+  | 'player.error.queueUpdate'
+  | 'player.error.repeatUpdate'
+  | 'player.error.seek'
+  | 'player.error.shuffleUpdate'
+  | 'player.error.volumeUpdate'
   | 'player.lyrics'
   | 'player.next'
   | 'player.pause'
@@ -111,6 +123,9 @@ type TranslationKey =
   | 'player.mute'
   | 'player.unmute'
   | 'player.volume'
+  | 'player.recovery.currentTrack'
+  | 'player.recovery.skippingTitle'
+  | 'player.recovery.skippingBody'
   | 'queue.close'
   | 'queue.clear'
   | 'queue.clearPlayed'
@@ -324,6 +339,18 @@ const translations: Record<AppLanguage, Record<TranslationKey, string>> = {
     'now.status': 'Status',
     'now.upcoming': '{count} upcoming',
     'player.addFolderHint': 'Add a folder and play a local file',
+    'player.error.audioOutput': 'Audio output failed',
+    'player.error.nextTrack': 'Next track failed',
+    'player.error.playback': 'Playback failed',
+    'player.error.playbackControl': 'Playback control failed',
+    'player.error.previousTrack': 'Previous track failed',
+    'player.error.queuePlayback': 'Queue playback failed',
+    'player.error.queueRecovery': 'Queue recovery failed',
+    'player.error.queueUpdate': 'Queue update failed',
+    'player.error.repeatUpdate': 'Repeat update failed',
+    'player.error.seek': 'Seek failed',
+    'player.error.shuffleUpdate': 'Shuffle update failed',
+    'player.error.volumeUpdate': 'Volume update failed',
     'player.lyrics': 'Lyrics',
     'player.next': 'Next track',
     'player.pause': 'Pause',
@@ -339,6 +366,9 @@ const translations: Record<AppLanguage, Record<TranslationKey, string>> = {
     'player.mute': 'Mute',
     'player.unmute': 'Unmute',
     'player.volume': 'Volume',
+    'player.recovery.currentTrack': 'Current track',
+    'player.recovery.skippingTitle': 'Skipping unavailable track',
+    'player.recovery.skippingBody': '{title} could not be played. Trying the next queue item.',
     'queue.close': 'Close queue',
     'queue.clear': 'Clear queue',
     'queue.clearPlayed': 'Clear played',
@@ -549,6 +579,18 @@ const translations: Record<AppLanguage, Record<TranslationKey, string>> = {
     'now.status': '状态',
     'now.upcoming': '接下来 {count} 首',
     'player.addFolderHint': '添加文件夹并播放本地文件',
+    'player.error.audioOutput': '音频输出失败',
+    'player.error.nextTrack': '下一首失败',
+    'player.error.playback': '播放失败',
+    'player.error.playbackControl': '播放控制失败',
+    'player.error.previousTrack': '上一首失败',
+    'player.error.queuePlayback': '队列播放失败',
+    'player.error.queueRecovery': '队列恢复失败',
+    'player.error.queueUpdate': '队列更新失败',
+    'player.error.repeatUpdate': '循环模式更新失败',
+    'player.error.seek': '跳转失败',
+    'player.error.shuffleUpdate': '随机播放更新失败',
+    'player.error.volumeUpdate': '音量更新失败',
     'player.lyrics': '歌词',
     'player.next': '下一首',
     'player.pause': '暂停',
@@ -564,6 +606,9 @@ const translations: Record<AppLanguage, Record<TranslationKey, string>> = {
     'player.mute': '静音',
     'player.unmute': '取消静音',
     'player.volume': '音量',
+    'player.recovery.currentTrack': '当前歌曲',
+    'player.recovery.skippingTitle': '正在跳过不可播放的歌曲',
+    'player.recovery.skippingBody': '{title} 无法播放，正在尝试队列中的下一首。',
     'queue.close': '关闭队列',
     'queue.clear': '清空队列',
     'queue.clearPlayed': '清除已播放',

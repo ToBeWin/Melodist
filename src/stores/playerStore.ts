@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 
+import { translate } from '../lib/i18n'
 import { onPlayerOutputError, onPlayerStateUpdate, onPositionUpdate, tauriPlayer } from '../lib/tauri'
 import {
   currentIndexAfterQueueMove,
@@ -135,7 +136,7 @@ async function syncQueue(queue: Track[], currentIndex: number | null) {
     )
   } catch (error) {
     console.error('Failed to sync queue', error)
-    notifyError('Queue update failed', error)
+    notifyError(localized('player.error.queueUpdate'), error)
   }
 }
 
@@ -181,6 +182,14 @@ function tracksFromSavedQueue(savedPaths: string[], libraryTracks: Track[]) {
     .filter((track): track is Track => Boolean(track))
 }
 
+function currentLanguage() {
+  return useSettingsStore.getState().appLanguage
+}
+
+function localized(key: Parameters<typeof translate>[1], params?: Parameters<typeof translate>[2]) {
+  return translate(currentLanguage(), key, params)
+}
+
 export const usePlayerStore = create<PlayerStore>((set, get) => ({
   status: 'stopped',
   currentTrack: null,
@@ -207,7 +216,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       void useLibraryStore.getState().loadLibrary()
     } catch (error) {
       console.error('Failed to play track', error)
-      notifyError('Playback failed', error)
+      notifyError(localized('player.error.playback'), error)
       set(stopAfterPlaybackError(track, [track], 0))
     }
   },
@@ -233,7 +242,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       void useLibraryStore.getState().loadLibrary()
     } catch (error) {
       console.error('Failed to set queue', error)
-      notifyError('Queue playback failed', error)
+      notifyError(localized('player.error.queuePlayback'), error)
       set(stopAfterPlaybackError(track, tracks, startIndex))
     }
   },
@@ -355,7 +364,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
           void useLibraryStore.getState().loadLibrary()
         } catch (recoveryError) {
           console.error('Failed to recover queue advance', recoveryError)
-          notifyError('Next track failed', recoveryError)
+          notifyError(localized('player.error.nextTrack'), recoveryError)
         }
       }
     }
@@ -393,7 +402,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
           void useLibraryStore.getState().loadLibrary()
         } catch (recoveryError) {
           console.error('Failed to recover queue previous', recoveryError)
-          notifyError('Previous track failed', recoveryError)
+          notifyError(localized('player.error.previousTrack'), recoveryError)
         }
       }
     }
@@ -404,7 +413,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       await tauriPlayer.pause()
     } catch (error) {
       console.error('Failed to pause playback', error)
-      notifyError('Playback control failed', error)
+      notifyError(localized('player.error.playbackControl'), error)
     } finally {
       if (previousStatus === 'playing') {
         set({ status: 'paused' })
@@ -418,7 +427,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       await tauriPlayer.seek(positionMs)
     } catch (error) {
       console.error('Failed to seek', error)
-      notifyError('Seek failed', error)
+      notifyError(localized('player.error.seek'), error)
     } finally {
       set({ positionMs })
     }
@@ -432,7 +441,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       await tauriPlayer.setVolume(nextVolume)
     } catch (error) {
       console.error('Failed to set volume', error)
-      notifyError('Volume update failed', error)
+      notifyError(localized('player.error.volumeUpdate'), error)
     } finally {
       set({ volume: nextVolume })
       void useSettingsStore.getState().setStoredVolume(nextVolume)
@@ -456,7 +465,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       persistCurrentPlaybackSession()
     } catch (error) {
       console.error('Failed to toggle shuffle', error)
-      notifyError('Shuffle update failed', error)
+      notifyError(localized('player.error.shuffleUpdate'), error)
     }
   },
   cycleRepeat: async () => {
@@ -470,7 +479,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       persistCurrentPlaybackSession()
     } catch (error) {
       console.error('Failed to cycle repeat mode', error)
-      notifyError('Repeat update failed', error)
+      notifyError(localized('player.error.repeatUpdate'), error)
     }
   },
   toggleLyrics: () => {
@@ -553,7 +562,7 @@ void onPlayerStateUpdate((playerState) => {
 })
 
 void onPlayerOutputError((message) => {
-  notifyError('Audio output failed', message)
+  notifyError(localized('player.error.audioOutput'), message)
   if (!shouldAutoSkipOutputError(message)) return
 
   const state = usePlayerStore.getState()
@@ -564,8 +573,10 @@ void onPlayerOutputError((message) => {
   if (!recoveryTrack) return
 
   useToastStore.getState().pushToast({
-    title: 'Skipping unavailable track',
-    message: `${state.currentTrack?.title ?? 'Current track'} could not be played. Trying the next queue item.`,
+    title: localized('player.recovery.skippingTitle'),
+    message: localized('player.recovery.skippingBody', {
+      title: state.currentTrack?.title ?? localized('player.recovery.currentTrack'),
+    }),
     tone: 'info',
   })
   usePlayerStore.setState({
@@ -588,7 +599,7 @@ void onPlayerOutputError((message) => {
     })
     .catch((error: unknown) => {
       console.error('Failed to recover after output error', error)
-      notifyError('Queue recovery failed', error)
+      notifyError(localized('player.error.queueRecovery'), error)
     })
 })
 
