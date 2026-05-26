@@ -45,16 +45,15 @@ jobs:
           rustup toolchain install stable --profile minimal
           rustup default stable
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.13.1
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
+
+      - name: Setup pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.13.1 --activate
 
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
