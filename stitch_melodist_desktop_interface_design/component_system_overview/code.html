@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Melodist - Component Library</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@600&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "on-tertiary": "#373100",
+                "outline": "#948e9d",
+                "primary-fixed": "#e8ddff",
+                "tertiary": "#dbc839",
+                "on-background": "#e5e2e1",
+                "on-error-container": "#ffdad6",
+                "on-primary-container": "#3c1989",
+                "on-primary-fixed-variant": "#4f319c",
+                "error": "#ffb4ab",
+                "on-surface": "#e5e2e1",
+                "on-secondary-container": "#c9aeff",
+                "surface-container-highest": "#353534",
+                "tertiary-fixed-dim": "#dbc839",
+                "surface-dim": "#131313",
+                "on-secondary": "#3f008e",
+                "secondary-container": "#6001d1",
+                "on-surface-variant": "#cac4d4",
+                "error-container": "#93000a",
+                "secondary": "#d2bbff",
+                "on-primary-fixed": "#21005e",
+                "inverse-surface": "#e5e2e1",
+                "background": "#131313",
+                "tertiary-container": "#af9e00",
+                "primary-container": "#a78bfa",
+                "surface-container-high": "#2a2a2a",
+                "surface-container": "#201f1f",
+                "on-primary": "#381385",
+                "tertiary-fixed": "#f8e454",
+                "on-tertiary-container": "#3b3500",
+                "surface-tint": "#cebdff",
+                "primary": "#cebdff",
+                "inverse-on-surface": "#313030",
+                "on-secondary-fixed-variant": "#5a00c6",
+                "on-secondary-fixed": "#25005a",
+                "surface-bright": "#3a3939",
+                "on-error": "#690005",
+                "inverse-primary": "#674bb5",
+                "surface-variant": "#353534",
+                "secondary-fixed-dim": "#d2bbff",
+                "on-tertiary-fixed-variant": "#504700",
+                "secondary-fixed": "#eaddff",
+                "on-tertiary-fixed": "#201c00",
+                "surface-container-lowest": "#0e0e0e",
+                "outline-variant": "#494552",
+                "surface-container-low": "#1c1b1b",
+                "surface": "#131313",
+                "primary-fixed-dim": "#cebdff"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.125rem",
+                "lg": "0.25rem",
+                "xl": "0.5rem",
+                "full": "0.75rem"
+        },
+        "spacing": {
+                "stack_base": "8px",
+                "gutter": "16px",
+                "stack_loose": "16px",
+                "sidebar_width": "220px",
+                "row_height": "52px",
+                "player_height": "80px",
+                "margin_window": "24px",
+                "stack_tight": "4px"
+        },
+        "fontFamily": {
+                "metadata-caps": [
+                        "Geist"
+                ],
+                "display": [
+                        "Inter"
+                ],
+                "body-primary": [
+                        "Inter"
+                ],
+                "mono-data": [
+                        "JetBrains Mono"
+                ],
+                "label-secondary": [
+                        "Inter"
+                ],
+                "title-lyrics": [
+                        "Inter"
+                ]
+        },
+        "fontSize": {
+                "metadata-caps": [
+                        "11px",
+                        {
+                                "lineHeight": "16px",
+                                "letterSpacing": "0.05em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "display": [
+                        "24px",
+                        {
+                                "lineHeight": "32px",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "body-primary": [
+                        "15px",
+                        {
+                                "lineHeight": "22px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "mono-data": [
+                        "12px",
+                        {
+                                "lineHeight": "16px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "label-secondary": [
+                        "13px",
+                        {
+                                "lineHeight": "18px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "title-lyrics": [
+                        "18px",
+                        {
+                                "lineHeight": "26px",
+                                "letterSpacing": "-0.01em",
+                                "fontWeight": "500"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+    /* Custom Scrollbar for the preview areas */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+        background-color: #353534;
+        border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background-color: #494552;
+    }
+    
+    /* Range Slider Styling */
+    input[type=range] {
+        -webkit-appearance: none;
+        width: 100%;
+        background: transparent;
+    }
+    input[type=range]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        height: 12px;
+        width: 12px;
+        border-radius: 50%;
+        background: #cebdff;
+        cursor: pointer;
+        margin-top: -4px;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+    input[type=range]:hover::-webkit-slider-thumb {
+        opacity: 1;
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+        width: 100%;
+        height: 4px;
+        cursor: pointer;
+        background: #353534;
+        border-radius: 2px;
+    }
+    input[type=range]:focus {
+        outline: none;
+    }
+</style>
+</head>
+<body class="bg-background text-on-background min-h-screen font-body-primary flex">
+<!-- Design System Navigation (Not part of the actual app UI, just for navigating this page) -->
+<nav class="w-sidebar_width h-screen sticky top-0 bg-surface-container-lowest border-r border-outline-variant p-margin_window flex flex-col gap-stack_loose overflow-y-auto">
+<h1 class="font-display text-display text-primary">Melodist</h1>
+<p class="font-label-secondary text-label-secondary text-on-surface-variant">Component Library</p>
+<ul class="flex flex-col gap-stack_base mt-gutter font-label-secondary text-label-secondary">
+<li><a class="block p-stack_base hover:bg-surface-container rounded-DEFAULT text-on-surface hover:text-primary transition-colors" href="#shells">Navigation &amp; Shells</a></li>
+<li><a class="block p-stack_base hover:bg-surface-container rounded-DEFAULT text-on-surface hover:text-primary transition-colors" href="#lists">Lists &amp; Grids</a></li>
+<li><a class="block p-stack_base hover:bg-surface-container rounded-DEFAULT text-on-surface hover:text-primary transition-colors" href="#controls">Controls &amp; Inputs</a></li>
+<li><a class="block p-stack_base hover:bg-surface-container rounded-DEFAULT text-on-surface hover:text-primary transition-colors" href="#settings">Settings &amp; Content</a></li>
+<li><a class="block p-stack_base hover:bg-surface-container rounded-DEFAULT text-on-surface hover:text-primary transition-colors" href="#tokens">Design Tokens</a></li>
+</ul>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 p-margin_window overflow-y-auto max-w-[1200px] mx-auto space-y-[80px] pb-[120px]">
+<div class="space-y-stack_base">
+<h2 class="font-display text-display">Component Library</h2>
+<p class="font-body-primary text-body-primary text-on-surface-variant">A comprehensive guide to the Melodist design system atoms and molecules.</p>
+</div>
+<!-- 1. Navigation & Player Shells -->
+<section class="space-y-gutter" id="shells">
+<h3 class="font-metadata-caps text-metadata-caps text-outline uppercase border-b border-outline-variant pb-stack_base">1. Navigation &amp; Player Shells</h3>
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-margin_window">
+<!-- SideNavBar Preview -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-stack_loose space-y-stack_base">
+<p class="font-mono-data text-mono-data text-on-surface-variant">SideNavBar (Component)</p>
+<div class="h-[400px] relative border border-outline-variant rounded-lg overflow-hidden bg-background">
+<!-- Simulated SideNavBar component -->
+<aside class="fixed left-0 top-0 h-full w-sidebar_width bg-surface border-r border-outline-variant flex flex-col py-stack_loose">
+<div class="px-gutter mb-gutter">
+<h1 class="font-display text-display font-semibold text-primary">Melodist</h1>
+<p class="font-label-secondary text-label-secondary text-on-surface-variant">Premium Audio</p>
+</div>
+<nav class="flex-1">
+<ul class="space-y-1">
+<li class="px-stack_tight">
+<a class="flex items-center gap-stack_base px-stack_base py-[10px] text-primary font-bold border-l-2 border-primary bg-surface-container-high rounded-r-DEFAULT transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-label-secondary text-label-secondary">Home</span>
+</a>
+</li>
+<li class="px-stack_tight">
+<a class="flex items-center gap-stack_base px-[14px] py-[10px] text-on-surface-variant hover:bg-surface-container transition-colors rounded-DEFAULT" href="#">
+<span class="material-symbols-outlined">library_music</span>
+<span class="font-label-secondary text-label-secondary">Library</span>
+</a>
+</li>
+<li class="px-stack_tight">
+<a class="flex items-center gap-stack_base px-[14px] py-[10px] text-on-surface-variant hover:bg-surface-container transition-colors rounded-DEFAULT" href="#">
+<span class="material-symbols-outlined">playlist_play</span>
+<span class="font-label-secondary text-label-secondary">Playlists</span>
+</a>
+</li>
+<li class="px-stack_tight">
+<a class="flex items-center gap-stack_base px-[14px] py-[10px] text-on-surface-variant hover:bg-surface-container transition-colors rounded-DEFAULT" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-secondary text-label-secondary">Artists</span>
+</a>
+</li>
+<li class="px-stack_tight">
+<a class="flex items-center gap-stack_base px-[14px] py-[10px] text-on-surface-variant hover:bg-surface-container transition-colors rounded-DEFAULT" href="#">
+<span class="material-symbols-outlined">album</span>
+<span class="font-label-secondary text-label-secondary">Albums</span>
+</a>
+</li>
+</ul>
+</nav>
+</aside>
+</div>
+</div>
+<!-- BottomNavBar Preview -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-stack_loose space-y-stack_base flex flex-col justify-between">
+<p class="font-mono-data text-mono-data text-on-surface-variant">BottomNavBar (Player Control)</p>
+<div class="relative w-full border border-outline-variant rounded-lg overflow-hidden bg-background h-[150px] flex items-end">
+<!-- Simulated BottomNavBar component -->
+<div class="w-full h-player_height bg-surface-container border-t border-outline-variant backdrop-blur-md flex items-center justify-between px-margin_window z-50">
+<!-- Track Info Placeholder -->
+<div class="flex items-center gap-gutter w-1/3">
+<div class="w-12 h-12 bg-surface-variant rounded-DEFAULT flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant">music_note</span>
+</div>
+<div class="flex flex-col">
+<span class="font-body-primary text-body-primary text-on-surface">Track Title</span>
+<span class="font-label-secondary text-label-secondary text-on-surface-variant">Artist Name</span>
+</div>
+</div>
+<!-- Controls -->
+<div class="flex flex-col items-center justify-center w-1/3 gap-stack_base">
+<div class="flex items-center gap-margin_window">
+<button class="text-on-surface hover:text-primary transition-all scale-105 active:scale-95">
+<span class="material-symbols-outlined">skip_previous</span>
+</button>
+<button class="text-primary hover:text-primary-fixed transition-all scale-105 active:scale-95 w-10 h-10 rounded-full bg-surface-variant flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+<button class="text-on-surface hover:text-primary transition-all scale-105 active:scale-95">
+<span class="material-symbols-outlined">skip_next</span>
+</button>
+</div>
+</div>
+<!-- Volume/Extra Placeholder -->
+<div class="flex justify-end w-1/3">
+<span class="material-symbols-outlined text-on-surface-variant">volume_up</span>
+</div>
+</div>
+</div>
+</div>
+<!-- TopAppBar Preview -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-stack_loose space-y-stack_base xl:col-span-2">
+<p class="font-mono-data text-mono-data text-on-surface-variant">TopAppBar (Small)</p>
+<div class="relative w-full border border-outline-variant rounded-lg overflow-hidden bg-background h-[120px]">
+<!-- Simulated TopAppBar component -->
+<header class="flex justify-between items-center h-row_height px-margin_window w-full bg-background border-b border-outline-variant absolute top-0 left-0">
+<div class="flex items-center gap-margin_window">
+<h2 class="font-display text-display font-semibold text-primary">Melodist</h2>
+<div class="relative hidden md:block">
+<span class="material-symbols-outlined absolute left-stack_base top-1/2 -translate-y-1/2 text-on-surface-variant text-[16px]">search</span>
+<input class="bg-surface-container h-[32px] pl-[32px] pr-stack_base rounded-full border border-outline-variant focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-label-secondary font-label-secondary text-on-surface w-[240px] transition-colors" placeholder="Search..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-gutter text-on-surface-variant">
+<button class="hover:bg-surface-container-high transition-colors p-stack_tight rounded-full cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<button class="hover:bg-surface-container-high transition-colors p-stack_tight rounded-full cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+</div>
+</header>
+</div>
+</div>
+</div>
+</section>
+</main>
+</body></html>

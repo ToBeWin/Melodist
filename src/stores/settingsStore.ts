@@ -1,0 +1,221 @@
+import { create } from 'zustand'
+
+import { defaultSettings, tauriLibrary, tauriPlayer, tauriSettings } from '../lib/tauri'
+import type { AppLanguage, AppSettings, AudioOutputDevice, TranslationProvider } from '../types'
+
+type WhisperModel = AppSettings['whisperModel']
+type LyricsDisplayMode = AppSettings['lyricsDisplayMode']
+type TranslationProviderField = keyof TranslationProvider
+
+interface SettingsStore {
+  appLanguage: AppLanguage
+  musicDirectories: string[]
+  whisperModel: WhisperModel
+  translationProvider: TranslationProvider | null
+  translationTargetLanguage: string
+  lyricsDisplayMode: LyricsDisplayMode
+  lyricsOffsetMs: number
+  audioOutputDevice: string | null
+  volume: number
+  playbackQueuePaths: string[]
+  playbackQueueIndex: number | null
+  playbackPositionMs: number
+  playbackShuffle: boolean
+  playbackRepeat: AppSettings['playbackRepeat']
+  replayGainEnabled: boolean
+  coverArtFallbackEnabled: boolean
+  metadataNetworkEnabled: boolean
+  audioOutputDevices: AudioOutputDevice[]
+  load: () => Promise<void>
+  loadAudioOutputDevices: () => Promise<void>
+  setAppLanguage: (language: AppLanguage) => Promise<void>
+  addMusicDirectory: (path: string) => Promise<void>
+  removeMusicDirectory: (path: string) => Promise<void>
+  toggleReplayGain: () => Promise<void>
+  toggleAiTranslation: () => Promise<void>
+  toggleCoverArtFallback: () => Promise<void>
+  toggleMetadataNetwork: () => Promise<void>
+  setWhisperModel: (model: WhisperModel) => Promise<void>
+  setTranslationTargetLanguage: (language: string) => Promise<void>
+  setTranslationProviderField: (field: TranslationProviderField, value: string) => Promise<void>
+  setLyricsDisplayMode: (mode: LyricsDisplayMode) => Promise<void>
+  setLyricsOffsetMs: (offsetMs: number) => Promise<void>
+  setAudioOutputDevice: (deviceId: string | null) => Promise<void>
+  setPlaybackSession: (
+    queuePaths: string[],
+    queueIndex: number | null,
+    positionMs: number,
+    shuffle: boolean,
+    repeat: AppSettings['playbackRepeat'],
+  ) => Promise<void>
+  setStoredVolume: (volume: number) => Promise<void>
+  save: () => Promise<void>
+}
+
+const selectSettings = (state: SettingsStore): AppSettings => ({
+  appLanguage: state.appLanguage,
+  musicDirectories: state.musicDirectories,
+  whisperModel: state.whisperModel,
+  translationProvider: state.translationProvider,
+  translationTargetLanguage: state.translationTargetLanguage,
+  lyricsDisplayMode: state.lyricsDisplayMode,
+  lyricsOffsetMs: Math.trunc(state.lyricsOffsetMs),
+  audioOutputDevice: state.audioOutputDevice,
+  volume: state.volume,
+  playbackQueuePaths: state.playbackQueuePaths,
+  playbackQueueIndex: state.playbackQueueIndex,
+  playbackPositionMs: Math.max(0, Math.floor(state.playbackPositionMs)),
+  playbackShuffle: state.playbackShuffle,
+  playbackRepeat: state.playbackRepeat,
+  replayGainEnabled: state.replayGainEnabled,
+  coverArtFallbackEnabled: state.coverArtFallbackEnabled,
+  metadataNetworkEnabled: state.metadataNetworkEnabled,
+})
+
+const clampVolume = (volume: number) => Math.min(1, Math.max(0, volume))
+const normalizeAppLanguage = (language: string): AppLanguage => (language === 'zh-CN' ? 'zh-CN' : 'en')
+const normalizeRepeat = (repeat: string): AppSettings['playbackRepeat'] =>
+  repeat === 'one' || repeat === 'all' ? repeat : 'none'
+
+export const useSettingsStore = create<SettingsStore>((set, get) => ({
+  ...defaultSettings,
+  audioOutputDevices: [],
+  load: async () => {
+    try {
+      const settings = await tauriSettings.load()
+      const volume = clampVolume(settings.volume)
+      set({
+        ...settings,
+        appLanguage: normalizeAppLanguage(settings.appLanguage),
+        playbackRepeat: normalizeRepeat(settings.playbackRepeat),
+        volume,
+      })
+      await tauriPlayer.setVolume(volume)
+      await tauriPlayer.setReplayGainEnabled(settings.replayGainEnabled)
+      await tauriPlayer.setAudioOutputDevice(settings.audioOutputDevice)
+      await tauriLibrary.watchDirectories(settings.musicDirectories)
+    } catch (error) {
+      console.error('Failed to load settings', error)
+    }
+  },
+  loadAudioOutputDevices: async () => {
+    try {
+      const audioOutputDevices = await tauriPlayer.listAudioOutputDevices()
+      set({ audioOutputDevices })
+    } catch (error) {
+      console.error('Failed to load audio output devices', error)
+    }
+  },
+  setAppLanguage: async (language) => {
+    set({ appLanguage: language })
+    await get().save()
+  },
+  addMusicDirectory: async (path) => {
+    set((state) => ({
+      musicDirectories: state.musicDirectories.includes(path)
+        ? state.musicDirectories
+        : [...state.musicDirectories, path],
+    }))
+    await get().save()
+  },
+  removeMusicDirectory: async (path) => {
+    set((state) => ({ musicDirectories: state.musicDirectories.filter((directory) => directory !== path) }))
+    try {
+      await tauriLibrary.removeDirectory(path)
+    } catch (error) {
+      console.error('Failed to remove library directory', error)
+    }
+    await get().save()
+  },
+  toggleReplayGain: async () => {
+    const enabled = !get().replayGainEnabled
+    set({ replayGainEnabled: enabled })
+    try {
+      await tauriPlayer.setReplayGainEnabled(enabled)
+    } catch (error) {
+      console.error('Failed to set ReplayGain', error)
+    }
+    await get().save()
+  },
+  toggleAiTranslation: async () => {
+    set((state) => ({
+      translationProvider: state.translationProvider
+        ? null
+        : { baseUrl: 'https://api.openai.com/v1', apiKey: '', model: 'gpt-4o-mini' },
+    }))
+    await get().save()
+  },
+  toggleCoverArtFallback: async () => {
+    set((state) => ({ coverArtFallbackEnabled: !state.coverArtFallbackEnabled }))
+    await get().save()
+  },
+  toggleMetadataNetwork: async () => {
+    set((state) => ({ metadataNetworkEnabled: !state.metadataNetworkEnabled }))
+    await get().save()
+  },
+  setWhisperModel: async (model) => {
+    set({ whisperModel: model })
+    await get().save()
+  },
+  setTranslationTargetLanguage: async (language) => {
+    set({ translationTargetLanguage: language })
+    await get().save()
+  },
+  setTranslationProviderField: async (field, value) => {
+    set((state) => ({
+      translationProvider: {
+        ...(state.translationProvider ?? {
+          baseUrl: 'https://api.openai.com/v1',
+          apiKey: '',
+          model: 'gpt-4o-mini',
+        }),
+        [field]: value,
+      },
+    }))
+    await get().save()
+  },
+  setLyricsDisplayMode: async (mode) => {
+    set({ lyricsDisplayMode: mode })
+    await get().save()
+  },
+  setLyricsOffsetMs: async (offsetMs) => {
+    set({ lyricsOffsetMs: Math.trunc(offsetMs) })
+    await get().save()
+  },
+  setAudioOutputDevice: async (deviceId) => {
+    set({ audioOutputDevice: deviceId })
+    try {
+      await tauriPlayer.setAudioOutputDevice(deviceId)
+    } catch (error) {
+      console.error('Failed to set audio output device', error)
+    }
+    await get().save()
+  },
+  setPlaybackSession: async (queuePaths, queueIndex, positionMs, shuffle, repeat) => {
+    set({
+      playbackQueuePaths: queuePaths,
+      playbackQueueIndex: queueIndex,
+      playbackPositionMs: Math.max(0, Math.floor(positionMs)),
+      playbackShuffle: shuffle,
+      playbackRepeat: repeat,
+    })
+    await get().save()
+  },
+  setStoredVolume: async (volume) => {
+    set({ volume: clampVolume(volume) })
+    await get().save()
+  },
+  save: async () => {
+    try {
+      const saved = await tauriSettings.save(selectSettings(get()))
+      set(saved)
+    } catch (error) {
+      console.error('Failed to save settings', error)
+    }
+  },
+}))
+
+void useSettingsStore.getState().load()
+void useSettingsStore.getState().loadAudioOutputDevices()
+
+export default useSettingsStore

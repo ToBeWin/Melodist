@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  verify:
+    name: Verify (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-22.04
+          - windows-2022
+          - macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Install Windows bundling dependencies
+        if: runner.os == 'Windows'
+        run: choco install nsis -y
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.13.1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Rust format
+        working-directory: src-tauri
+        run: cargo fmt --check
+
+      - name: Rust clippy
+        working-directory: src-tauri
+        run: cargo clippy -- -D warnings
+
+      - name: Rust tests
+        working-directory: src-tauri
+        run: cargo test
+
+      - name: Frontend tests
+        run: pnpm test
+
+      - name: Frontend lint
+        run: pnpm lint
+
+      - name: Smoke library fixture
+        run: pnpm smoke:library && pnpm smoke:verify-library
+
+      - name: TypeScript and frontend build
+        run: pnpm build
+
+      - name: Tauri macOS bundle
+        if: runner.os == 'macOS'
+        run: pnpm tauri build --ci --bundles app
+
+      - name: Tauri Windows bundle
+        if: runner.os == 'Windows'
+        run: pnpm tauri build --ci --bundles nsis
+
+      - name: Tauri Linux bundle
+        if: runner.os == 'Linux'
+        run: pnpm tauri build --ci --bundles deb
