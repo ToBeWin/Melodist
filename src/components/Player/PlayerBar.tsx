@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type PointerEvent } from 'react'
 import { ListMusic, Pause, Play, Repeat, Shuffle, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react'
 
 import { useI18n } from '../../lib/i18n'
@@ -44,6 +44,7 @@ export function PlayerBar() {
   const setActiveView = useUiStore((state) => state.setActiveView)
   const toggleQueue = useUiStore((state) => state.toggleQueue)
   const [draftSeek, setDraftSeek] = useState<{ positionMs: number; trackId: string } | null>(null)
+  const [hoverSeek, setHoverSeek] = useState<{ positionMs: number; leftPercent: number } | null>(null)
   const isPlaying = status === 'playing'
   const coverUrl = toAssetUrl(currentTrack?.coverCachePath)
   const durationMs = currentTrack?.durationMs ?? 0
@@ -70,6 +71,19 @@ export function PlayerBar() {
     setDraftSeek(null)
     if (!currentTrack) return
     void seek(nextPosition)
+  }
+  const updateHoverSeek = (event: PointerEvent<HTMLInputElement>) => {
+    if (!currentTrack || durationMs <= 0) {
+      setHoverSeek(null)
+      return
+    }
+
+    const bounds = event.currentTarget.getBoundingClientRect()
+    const ratio = Math.min(Math.max((event.clientX - bounds.left) / bounds.width, 0), 1)
+    setHoverSeek({
+      positionMs: Math.round(durationMs * ratio),
+      leftPercent: ratio * 100,
+    })
   }
 
   return (
@@ -123,25 +137,36 @@ export function PlayerBar() {
         </div>
         <div className="progress-line">
           <span>{formatDurationMs(displayedPositionMs)}</span>
-          <input
-            aria-label={t('player.progress')}
-            disabled={!currentTrack}
-            max={durationMs}
-            min={0}
-            type="range"
-            value={displayedPositionMs}
-            onBlur={(event) => {
-              if (draftPositionMs !== null) commitSeek(Number(event.currentTarget.value))
-            }}
-            onChange={(event) => {
-              if (!currentTrack) return
-              setDraftSeek({ positionMs: Number(event.currentTarget.value), trackId: currentTrack.id })
-            }}
-            onKeyUp={(event) => {
-              if (draftPositionMs !== null) commitSeek(Number(event.currentTarget.value))
-            }}
-            onPointerUp={(event) => commitSeek(Number(event.currentTarget.value))}
-          />
+          <div className="progress-control">
+            {hoverSeek ? (
+              <span className="progress-tooltip" style={{ left: `${hoverSeek.leftPercent}%` }}>
+                {formatDurationMs(hoverSeek.positionMs)}
+              </span>
+            ) : null}
+            <input
+              aria-label={t('player.progress')}
+              disabled={!currentTrack}
+              max={durationMs}
+              min={0}
+              title={hoverSeek ? formatDurationMs(hoverSeek.positionMs) : undefined}
+              type="range"
+              value={displayedPositionMs}
+              onBlur={(event) => {
+                setHoverSeek(null)
+                if (draftPositionMs !== null) commitSeek(Number(event.currentTarget.value))
+              }}
+              onChange={(event) => {
+                if (!currentTrack) return
+                setDraftSeek({ positionMs: Number(event.currentTarget.value), trackId: currentTrack.id })
+              }}
+              onKeyUp={(event) => {
+                if (draftPositionMs !== null) commitSeek(Number(event.currentTarget.value))
+              }}
+              onPointerLeave={() => setHoverSeek(null)}
+              onPointerMove={updateHoverSeek}
+              onPointerUp={(event) => commitSeek(Number(event.currentTarget.value))}
+            />
+          </div>
           <span>{formatDurationMs(durationMs)}</span>
         </div>
       </div>

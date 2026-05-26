@@ -10,7 +10,7 @@
 
 **Name**: Melodist  
 **Tagline**: The first music player that truly understands your music — lyrics, translation, and metadata, all local, all private.  
-**Repo**: `github.com/metapure-lab/melodist`  
+**Repo**: `github.com/ToBeWin/Melodist`
 **License**: MIT  
 **Author**: MetaPure Lab (metapure.ai)  
 **Target platforms**: macOS 12+, Windows 10+, Linux (glibc 2.31+)  

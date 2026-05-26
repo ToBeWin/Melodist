@@ -57,6 +57,7 @@
       "deb": {
         "depends": [
           "libwebkit2gtk-4.1-0",
+          "libasound2",
           "libayatana-appindicator3-1",
           "librsvg2-2"
         ]

@@ -43,8 +43,18 @@ pnpm tauri build
 pnpm release:collect-assets
 ```
 
+Linux builders need the native audio and WebKitGTK headers used by Tauri and
+the audio backend. On Ubuntu 22.04, install:
+
+```bash
+sudo apt install libwebkit2gtk-4.1-dev libssl-dev libasound2-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+```
+
 Record the OS, architecture, Node version, pnpm version, and Rust version used for the release candidate.
 For signed public builds, configure the platform signing secrets consumed by `.github/workflows/release.yml` before creating a `v*` tag.
+The current Windows installer uses the WebView2 download bootstrapper, so
+installer-time network access must be documented or validated on a clean
+machine that already has WebView2 installed.
 
 ## Real Audio Manual Test
 
@@ -86,7 +96,13 @@ Manual pass:
 14. Quit and relaunch the app.
 15. Confirm settings, volume, and known library state persist.
 16. Confirm no user data was written inside the repository directory.
-17. Monitor network activity during normal playback and browsing; there should be no unexpected network requests.
+17. Drag audio files into the library and verify they scan.
+18. Drag a music folder into the library and verify nested supported files scan.
+19. Drag a same-name `.lrc` file and verify it is imported or reports a clear failure.
+20. Switch audio output devices when available and confirm playback still works after restart.
+21. Toggle ReplayGain normalization and confirm it does not break playback.
+22. Save or edit LRC lyrics and confirm the sidecar write location is expected by the tester.
+23. Monitor network activity during normal playback and browsing; there should be no unexpected network requests.
 
 ## Keyboard Manual Test
 
@@ -118,6 +134,7 @@ If a shortcut conflicts with the OS or focused control, document the behavior be
 
 - Build and test on Windows 10 or newer.
 - Verify installer flow, app launch, and uninstall behavior.
+- Verify whether WebView2 is preinstalled or whether the bootstrapper needs network access.
 - Confirm paths with spaces and non-ASCII characters scan correctly.
 - Verify playback through the default audio device.
 - Confirm the app does not require administrator privileges for normal use.

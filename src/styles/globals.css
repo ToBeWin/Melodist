@@ -2256,6 +2256,29 @@ button {
   font-size: 12px;
 }
 
+.progress-control {
+  position: relative;
+  flex: 1;
+  min-width: 160px;
+}
+
+.progress-tooltip {
+  position: absolute;
+  bottom: 22px;
+  z-index: 3;
+  padding: 4px 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: 11px;
+  line-height: 1;
+  pointer-events: none;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+}
+
 .player-tools {
   justify-content: flex-end;
   gap: 8px;

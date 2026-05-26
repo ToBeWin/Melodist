@@ -74,6 +74,15 @@ Melodist scans and plays the local formats supported by the current backend:
 - Platform dependencies required by Tauri 2
 
 On Linux, install the WebKitGTK and related system packages required by Tauri before building.
+For Ubuntu 22.04, the CI baseline uses:
+
+```bash
+sudo apt install libwebkit2gtk-4.1-dev libssl-dev libasound2-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+```
+
+On Windows, the current NSIS installer uses the WebView2 download bootstrapper.
+Normal app playback and library browsing remain local-first; installer-time
+WebView2 setup may require network access on machines without the runtime.
 
 ## Development
 
@@ -159,3 +168,7 @@ These are intentionally deferred to v0.2 or later:
 GitHub: <https://github.com/ToBeWin/Melodist>
 
 See `AGENTS.md` for the authoritative architecture and coding rules.
+
+## License
+
+MIT. See `LICENSE`.

@@ -191,7 +191,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   volume: 0.72,
   shuffle: false,
   repeat: 'none',
-  lyricsOpen: true,
+  lyricsOpen: false,
   play: async (track) => {
     const nextQueue = queueForTrack(track, get())
     if (nextQueue.queue.length > 1) {
