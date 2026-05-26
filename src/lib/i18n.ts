@@ -45,6 +45,7 @@ type TranslationKey =
   | 'lyrics.displayMode'
   | 'lyrics.empty'
   | 'lyrics.loading'
+  | 'lyrics.loadFailed'
   | 'lyrics.local'
   | 'lyrics.noTrack'
   | 'lyrics.noteEstimated'
@@ -56,6 +57,8 @@ type TranslationKey =
   | 'lyrics.original'
   | 'lyrics.panel'
   | 'lyrics.saveLrc'
+  | 'lyrics.saveLrcComplete'
+  | 'lyrics.saveLrcFailed'
   | 'lyrics.saveLrcHint'
   | 'lyrics.seekEstimatedLine'
   | 'lyrics.source.embedded'
@@ -290,6 +293,7 @@ const translations: Record<AppLanguage, Record<TranslationKey, string>> = {
     'lyrics.displayMode': 'Lyrics display mode',
     'lyrics.empty': 'No embedded lyrics or matching .lrc file found.',
     'lyrics.loading': 'Loading local lyrics...',
+    'lyrics.loadFailed': 'Failed to load lyrics',
     'lyrics.local': 'Local lyrics',
     'lyrics.noTrack': 'Play a local track to load embedded lyrics or a same-name .lrc file.',
     'lyrics.noteEstimated': 'This embedded lyric has no timestamps, so Melodist is estimating the active line from playback progress. Add a same-name .lrc file for precise sync.',
@@ -301,6 +305,8 @@ const translations: Record<AppLanguage, Record<TranslationKey, string>> = {
     'lyrics.original': 'Original',
     'lyrics.panel': 'Lyrics panel',
     'lyrics.saveLrc': 'Save LRC',
+    'lyrics.saveLrcComplete': 'LRC saved',
+    'lyrics.saveLrcFailed': 'Failed to save lyrics',
     'lyrics.saveLrcHint': 'Paste timestamped LRC text here. Saving writes a same-name .lrc file beside the track.',
     'lyrics.seekEstimatedLine': 'Seek to estimated lyric position',
     'lyrics.source.embedded': 'embedded',
@@ -532,6 +538,7 @@ const translations: Record<AppLanguage, Record<TranslationKey, string>> = {
     'lyrics.displayMode': '歌词显示模式',
     'lyrics.empty': '未找到嵌入歌词或同名 .lrc 文件。',
     'lyrics.loading': '正在加载本地歌词...',
+    'lyrics.loadFailed': '歌词加载失败',
     'lyrics.local': '本地歌词',
     'lyrics.noTrack': '播放一首本地歌曲以加载嵌入歌词或同名 .lrc 文件。',
     'lyrics.noteEstimated': '这份嵌入歌词没有时间戳，Melodist 正按播放进度估算当前行。添加同名 .lrc 文件后可获得精准同步。',
@@ -543,6 +550,8 @@ const translations: Record<AppLanguage, Record<TranslationKey, string>> = {
     'lyrics.original': '原文',
     'lyrics.panel': '歌词面板',
     'lyrics.saveLrc': '保存 LRC',
+    'lyrics.saveLrcComplete': 'LRC 已保存',
+    'lyrics.saveLrcFailed': '歌词保存失败',
     'lyrics.saveLrcHint': '在这里粘贴带时间戳的 LRC 文本。保存后会在歌曲旁写入同名 .lrc 文件。',
     'lyrics.seekEstimatedLine': '跳转到估算歌词位置',
     'lyrics.source.embedded': '嵌入',
