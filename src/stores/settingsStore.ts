@@ -190,8 +190,16 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     }
   },
   setAppLanguage: async (language) => {
+    const previousAppLanguage = get().appLanguage
     set({ appLanguage: language })
-    await get().save()
+    try {
+      const saved = await tauriSettings.save(selectSettings(get()))
+      set(saved)
+    } catch (error) {
+      set({ appLanguage: previousAppLanguage })
+      console.error('Failed to save app language', error)
+      notifyError(localizedSettingsErrorTitle('save'), error)
+    }
   },
   addMusicDirectory: async (path) => {
     const previousDirectories = get().musicDirectories
