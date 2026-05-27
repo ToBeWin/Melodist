@@ -194,12 +194,20 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     await get().save()
   },
   addMusicDirectory: async (path) => {
+    const previousDirectories = get().musicDirectories
     set((state) => ({
       musicDirectories: state.musicDirectories.includes(path)
         ? state.musicDirectories
         : [...state.musicDirectories, path],
     }))
-    await get().save()
+    try {
+      const saved = await tauriSettings.save(selectSettings(get()))
+      set(saved)
+    } catch (error) {
+      set({ musicDirectories: previousDirectories })
+      console.error('Failed to save music directory', error)
+      notifyError(localizedSettingsErrorTitle('save'), error)
+    }
   },
   removeMusicDirectory: async (path) => {
     const previousDirectories = get().musicDirectories
