@@ -177,13 +177,16 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     await get().save()
   },
   toggleReplayGain: async () => {
-    const enabled = !get().replayGainEnabled
+    const previousReplayGainEnabled = get().replayGainEnabled
+    const enabled = !previousReplayGainEnabled
     set({ replayGainEnabled: enabled })
     try {
       await tauriPlayer.setReplayGainEnabled(enabled)
     } catch (error) {
+      set({ replayGainEnabled: previousReplayGainEnabled })
       console.error('Failed to set ReplayGain', error)
       notifyError(localizedSettingsErrorTitle('replayGain'), error)
+      return
     }
     await get().save()
   },
@@ -233,12 +236,15 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     await get().save()
   },
   setAudioOutputDevice: async (deviceId) => {
+    const previousAudioOutputDevice = get().audioOutputDevice
     set({ audioOutputDevice: deviceId })
     try {
       await tauriPlayer.setAudioOutputDevice(deviceId)
     } catch (error) {
+      set({ audioOutputDevice: previousAudioOutputDevice })
       console.error('Failed to set audio output device', error)
       notifyError(localizedSettingsErrorTitle('audioDevice'), error)
+      return
     }
     await get().save()
   },
