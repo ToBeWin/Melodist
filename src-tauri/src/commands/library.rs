@@ -102,7 +102,6 @@ pub async fn scan_directory(app: AppHandle, path: String) -> Result<ScanResult, 
     let scan_path = validate_scan_path(&path)?;
     let database_path = database_path(&app)?;
     let cover_cache_dir = cover_cache_dir(&app)?;
-    register_directory_watcher(&app, scan_path.clone());
     let app_for_scan = app.clone();
 
     let scan_path_for_result = scan_path.clone();
@@ -125,6 +124,7 @@ pub async fn scan_directory(app: AppHandle, path: String) -> Result<ScanResult, 
     result
         .imported_directories
         .push(scan_path_for_result.to_string_lossy().to_string());
+    register_directory_watcher(&app, scan_path_for_result);
     let _ = app.emit("library://scan-complete", result.clone());
     Ok(result)
 }
@@ -140,10 +140,6 @@ pub async fn import_dropped_paths(
     }
 
     let dropped_paths = paths.into_iter().map(PathBuf::from).collect::<Vec<_>>();
-    for path in dropped_paths.iter().filter(|path| path.is_dir()) {
-        register_directory_watcher(&app, path.clone());
-    }
-
     let database_path = database_path(&app)?;
     let cover_cache_dir = cover_cache_dir(&app)?;
     let app_for_scan = app.clone();
@@ -164,6 +160,9 @@ pub async fn import_dropped_paths(
     })
     .await
     .map_err(|error| format!("Dropped import task failed: {error}"))??;
+    for directory in &result.imported_directories {
+        register_directory_watcher(&app, PathBuf::from(directory));
+    }
     let _ = app.emit("library://scan-complete", result.clone());
     Ok(result)
 }
@@ -190,10 +189,6 @@ pub async fn remove_library_directory(app: AppHandle, path: String) -> Result<Sc
 
     let scan_path = PathBuf::from(trimmed_path);
     let canonical_path = scan_path.canonicalize().unwrap_or(scan_path);
-    {
-        let state = app.state::<AppState>();
-        state.watched_directories.lock().remove(&canonical_path);
-    }
 
     let database_path = database_path(&app)?;
     let remove_root = canonical_path.clone();
@@ -206,6 +201,10 @@ pub async fn remove_library_directory(app: AppHandle, path: String) -> Result<Sc
     })
     .await
     .map_err(|error| format!("Remove library directory task failed: {error}"))??;
+    {
+        let state = app.state::<AppState>();
+        state.watched_directories.lock().remove(&canonical_path);
+    }
 
     let result = ScanResult {
         added: 0,
