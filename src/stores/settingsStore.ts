@@ -202,12 +202,17 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     await get().save()
   },
   removeMusicDirectory: async (path) => {
+    const previousDirectories = get().musicDirectories
+    if (!previousDirectories.includes(path)) return
+
     set((state) => ({ musicDirectories: state.musicDirectories.filter((directory) => directory !== path) }))
     try {
       await tauriLibrary.removeDirectory(path)
     } catch (error) {
+      set({ musicDirectories: previousDirectories })
       console.error('Failed to remove library directory', error)
       notifyError(localizedSettingsErrorTitle('removeDirectory'), error)
+      return
     }
     await get().save()
   },
