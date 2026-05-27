@@ -230,7 +230,13 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       notifyError(localizedSettingsErrorTitle('removeDirectory'), error)
       return
     }
-    await get().save()
+    try {
+      const saved = await tauriSettings.save(selectSettings(get()))
+      set(saved)
+    } catch (error) {
+      console.error('Failed to save directory removal', error)
+      notifyError(localizedSettingsErrorTitle('save'), error)
+    }
   },
   toggleReplayGain: async () => {
     const previousReplayGainEnabled = get().replayGainEnabled
@@ -244,33 +250,86 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       notifyError(localizedSettingsErrorTitle('replayGain'), error)
       return
     }
-    await get().save()
+    try {
+      const saved = await tauriSettings.save(selectSettings(get()))
+      set(saved)
+    } catch (error) {
+      set({ replayGainEnabled: previousReplayGainEnabled })
+      try {
+        await tauriPlayer.setReplayGainEnabled(previousReplayGainEnabled)
+      } catch (revertError) {
+        console.error('Failed to restore ReplayGain after settings save failure', revertError)
+      }
+      console.error('Failed to save ReplayGain setting', error)
+      notifyError(localizedSettingsErrorTitle('save'), error)
+    }
   },
   toggleAiTranslation: async () => {
+    const previousTranslationProvider = get().translationProvider
     set((state) => ({
       translationProvider: state.translationProvider
         ? null
         : { baseUrl: 'https://api.openai.com/v1', apiKey: '', model: 'gpt-4o-mini' },
     }))
-    await get().save()
+    try {
+      const saved = await tauriSettings.save(selectSettings(get()))
+      set(saved)
+    } catch (error) {
+      set({ translationProvider: previousTranslationProvider })
+      console.error('Failed to save AI translation setting', error)
+      notifyError(localizedSettingsErrorTitle('save'), error)
+    }
   },
   toggleCoverArtFallback: async () => {
+    const previousCoverArtFallbackEnabled = get().coverArtFallbackEnabled
     set((state) => ({ coverArtFallbackEnabled: !state.coverArtFallbackEnabled }))
-    await get().save()
+    try {
+      const saved = await tauriSettings.save(selectSettings(get()))
+      set(saved)
+    } catch (error) {
+      set({ coverArtFallbackEnabled: previousCoverArtFallbackEnabled })
+      console.error('Failed to save cover art fallback setting', error)
+      notifyError(localizedSettingsErrorTitle('save'), error)
+    }
   },
   toggleMetadataNetwork: async () => {
+    const previousMetadataNetworkEnabled = get().metadataNetworkEnabled
     set((state) => ({ metadataNetworkEnabled: !state.metadataNetworkEnabled }))
-    await get().save()
+    try {
+      const saved = await tauriSettings.save(selectSettings(get()))
+      set(saved)
+    } catch (error) {
+      set({ metadataNetworkEnabled: previousMetadataNetworkEnabled })
+      console.error('Failed to save metadata network setting', error)
+      notifyError(localizedSettingsErrorTitle('save'), error)
+    }
   },
   setWhisperModel: async (model) => {
+    const previousWhisperModel = get().whisperModel
     set({ whisperModel: model })
-    await get().save()
+    try {
+      const saved = await tauriSettings.save(selectSettings(get()))
+      set(saved)
+    } catch (error) {
+      set({ whisperModel: previousWhisperModel })
+      console.error('Failed to save whisper model', error)
+      notifyError(localizedSettingsErrorTitle('save'), error)
+    }
   },
   setTranslationTargetLanguage: async (language) => {
+    const previousTranslationTargetLanguage = get().translationTargetLanguage
     set({ translationTargetLanguage: language })
-    await get().save()
+    try {
+      const saved = await tauriSettings.save(selectSettings(get()))
+      set(saved)
+    } catch (error) {
+      set({ translationTargetLanguage: previousTranslationTargetLanguage })
+      console.error('Failed to save translation target language', error)
+      notifyError(localizedSettingsErrorTitle('save'), error)
+    }
   },
   setTranslationProviderField: async (field, value) => {
+    const previousTranslationProvider = get().translationProvider
     set((state) => ({
       translationProvider: {
         ...(state.translationProvider ?? {
@@ -281,15 +340,38 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
         [field]: value,
       },
     }))
-    await get().save()
+    try {
+      const saved = await tauriSettings.save(selectSettings(get()))
+      set(saved)
+    } catch (error) {
+      set({ translationProvider: previousTranslationProvider })
+      console.error('Failed to save translation provider', error)
+      notifyError(localizedSettingsErrorTitle('save'), error)
+    }
   },
   setLyricsDisplayMode: async (mode) => {
+    const previousLyricsDisplayMode = get().lyricsDisplayMode
     set({ lyricsDisplayMode: mode })
-    await get().save()
+    try {
+      const saved = await tauriSettings.save(selectSettings(get()))
+      set(saved)
+    } catch (error) {
+      set({ lyricsDisplayMode: previousLyricsDisplayMode })
+      console.error('Failed to save lyrics display mode', error)
+      notifyError(localizedSettingsErrorTitle('save'), error)
+    }
   },
   setLyricsOffsetMs: async (offsetMs) => {
+    const previousLyricsOffsetMs = get().lyricsOffsetMs
     set({ lyricsOffsetMs: Math.trunc(offsetMs) })
-    await get().save()
+    try {
+      const saved = await tauriSettings.save(selectSettings(get()))
+      set(saved)
+    } catch (error) {
+      set({ lyricsOffsetMs: previousLyricsOffsetMs })
+      console.error('Failed to save lyrics offset', error)
+      notifyError(localizedSettingsErrorTitle('save'), error)
+    }
   },
   setAudioOutputDevice: async (deviceId) => {
     const previousAudioOutputDevice = get().audioOutputDevice
@@ -302,9 +384,28 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       notifyError(localizedSettingsErrorTitle('audioDevice'), error)
       return
     }
-    await get().save()
+    try {
+      const saved = await tauriSettings.save(selectSettings(get()))
+      set(saved)
+    } catch (error) {
+      set({ audioOutputDevice: previousAudioOutputDevice })
+      try {
+        await tauriPlayer.setAudioOutputDevice(previousAudioOutputDevice)
+      } catch (revertError) {
+        console.error('Failed to restore audio output device after settings save failure', revertError)
+      }
+      console.error('Failed to save audio output device', error)
+      notifyError(localizedSettingsErrorTitle('save'), error)
+    }
   },
   setPlaybackSession: async (queuePaths, queueIndex, positionMs, shuffle, repeat) => {
+    const previousSession = {
+      playbackQueuePaths: get().playbackQueuePaths,
+      playbackQueueIndex: get().playbackQueueIndex,
+      playbackPositionMs: get().playbackPositionMs,
+      playbackShuffle: get().playbackShuffle,
+      playbackRepeat: get().playbackRepeat,
+    }
     set({
       playbackQueuePaths: queuePaths,
       playbackQueueIndex: queueIndex,
@@ -312,11 +413,26 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       playbackShuffle: shuffle,
       playbackRepeat: repeat,
     })
-    await get().save()
+    try {
+      const saved = await tauriSettings.save(selectSettings(get()))
+      set(saved)
+    } catch (error) {
+      set(previousSession)
+      console.error('Failed to save playback session', error)
+      notifyError(localizedSettingsErrorTitle('save'), error)
+    }
   },
   setStoredVolume: async (volume) => {
+    const previousVolume = get().volume
     set({ volume: clampVolume(volume) })
-    await get().save()
+    try {
+      const saved = await tauriSettings.save(selectSettings(get()))
+      set(saved)
+    } catch (error) {
+      set({ volume: previousVolume })
+      console.error('Failed to save stored volume', error)
+      notifyError(localizedSettingsErrorTitle('save'), error)
+    }
   },
   save: async () => {
     try {
