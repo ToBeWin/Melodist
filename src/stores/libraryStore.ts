@@ -6,7 +6,7 @@ import { scanFailureDetails, scanResultMessage } from '../lib/scanResult'
 import { onLibraryWatchError, onScanComplete, onScanProgress, tauriDialog, tauriLibrary } from '../lib/tauri'
 import { useSettingsStore } from './settingsStore'
 import { notifyError, useToastStore } from './toastStore'
-import type { Album, ScanProgress, Track } from '../types'
+import type { Album, ScanProgress, ScanResult, Track } from '../types'
 
 type SortDirection = 'asc' | 'desc'
 export type TrackSortField = 'trackNumber' | 'title' | 'artist' | 'album' | 'duration' | 'dateAdded' | 'lastPlayed' | 'playCount'
@@ -21,7 +21,7 @@ interface LibraryStore {
   sortField: TrackSortField
   sortDirection: SortDirection
   filteredTracks: Track[]
-  scanDirectory: (path: string) => Promise<void>
+  scanDirectory: (path: string) => Promise<ScanResult | null>
   importDroppedPaths: (paths: string[]) => Promise<void>
   chooseAndScanDirectory: () => Promise<void>
   rescanLibrary: () => Promise<void>
@@ -159,9 +159,11 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
         details: scanFailureDetails(result),
         tone: result.failed > 0 ? 'info' : 'success',
       })
+      return result
     } catch (error) {
       console.error('Failed to scan directory', error)
       notifyError(localized('library.scanFailedTitle'), error)
+      return null
     } finally {
       set({ isScanning: false, scanProgress: null })
     }
@@ -216,8 +218,11 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
     try {
       const path = await tauriDialog.openMusicDirectory()
       if (!path) return
-      await useSettingsStore.getState().addMusicDirectory(path)
-      await get().scanDirectory(path)
+      const result = await get().scanDirectory(path)
+      if (!result) return
+      for (const directory of result.importedDirectories) {
+        await useSettingsStore.getState().addMusicDirectory(directory)
+      }
     } catch (error) {
       console.error('Failed to choose and scan directory', error)
       notifyError(localized('library.scanFailedTitle'), error)
