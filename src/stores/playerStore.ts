@@ -341,6 +341,8 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
           localIndex,
         )
         set(applyPlayerState(recoveredState, queue, localTrack))
+        const nextState = get()
+        persistPlaybackSession(nextState.queue, nextState.currentIndex, nextState.positionMs, nextState.shuffle, nextState.repeat)
         return
       }
       set(applyPlayerState(playerState, queue, localTrack))
@@ -357,11 +359,15 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
             localIndex,
           )
           set(applyPlayerState(recoveredState, queue, localTrack))
+          const nextState = get()
+          persistPlaybackSession(nextState.queue, nextState.currentIndex, nextState.positionMs, nextState.shuffle, nextState.repeat)
           void useLibraryStore.getState().loadLibrary()
         } catch (recoveryError) {
           console.error('Failed to recover queue advance', recoveryError)
           notifyError(localized('player.error.nextTrack'), recoveryError)
         }
+      } else {
+        notifyError(localized('player.error.nextTrack'), error)
       }
     }
   },
@@ -379,6 +385,8 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
           localIndex,
         )
         set(applyPlayerState(recoveredState, queue, localTrack))
+        const nextState = get()
+        persistPlaybackSession(nextState.queue, nextState.currentIndex, nextState.positionMs, nextState.shuffle, nextState.repeat)
         return
       }
       set(applyPlayerState(playerState, queue, localTrack))
@@ -395,11 +403,15 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
             localIndex,
           )
           set(applyPlayerState(recoveredState, queue, localTrack))
+          const nextState = get()
+          persistPlaybackSession(nextState.queue, nextState.currentIndex, nextState.positionMs, nextState.shuffle, nextState.repeat)
           void useLibraryStore.getState().loadLibrary()
         } catch (recoveryError) {
           console.error('Failed to recover queue previous', recoveryError)
           notifyError(localized('player.error.previousTrack'), recoveryError)
         }
+      } else {
+        notifyError(localized('player.error.previousTrack'), error)
       }
     }
   },
