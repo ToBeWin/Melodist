@@ -465,40 +465,41 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     const previousStatus = get().status
     try {
       await tauriPlayer.pause()
-    } catch (error) {
-      console.error('Failed to pause playback', error)
-      notifyError(localized('player.error.playbackControl'), error)
-    } finally {
       if (previousStatus === 'playing') {
         set({ status: 'paused' })
       } else if (previousStatus === 'paused') {
         set({ status: 'playing' })
       }
+    } catch (error) {
+      console.error('Failed to pause playback', error)
+      notifyError(localized('player.error.playbackControl'), error)
     }
   },
   seek: async (positionMs) => {
     try {
       await tauriPlayer.seek(positionMs)
+      set({ positionMs })
     } catch (error) {
       console.error('Failed to seek', error)
       notifyError(localized('player.error.seek'), error)
-    } finally {
-      set({ positionMs })
     }
   },
   setVolume: async (volume) => {
     const nextVolume = Math.min(1, Math.max(0, volume))
+    const previousVolume = get().volume
+    const previousAudibleVolume = lastAudibleVolume
     if (nextVolume > 0) {
       lastAudibleVolume = nextVolume
     }
     try {
       await tauriPlayer.setVolume(nextVolume)
-    } catch (error) {
-      console.error('Failed to set volume', error)
-      notifyError(localized('player.error.volumeUpdate'), error)
-    } finally {
       set({ volume: nextVolume })
       void useSettingsStore.getState().setStoredVolume(nextVolume)
+    } catch (error) {
+      lastAudibleVolume = previousAudibleVolume
+      set({ volume: previousVolume })
+      console.error('Failed to set volume', error)
+      notifyError(localized('player.error.volumeUpdate'), error)
     }
   },
   toggleMute: async () => {
@@ -518,12 +519,14 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       )
       persistCurrentPlaybackSession()
     } catch (error) {
+      set({ shuffle: previousShuffle })
       console.error('Failed to toggle shuffle', error)
       notifyError(localized('player.error.shuffleUpdate'), error)
     }
   },
   cycleRepeat: async () => {
-    const nextRepeat = get().repeat === 'none' ? 'all' : get().repeat === 'all' ? 'one' : 'none'
+    const previousRepeat = get().repeat
+    const nextRepeat = previousRepeat === 'none' ? 'all' : previousRepeat === 'all' ? 'one' : 'none'
     set({ repeat: nextRepeat })
     try {
       const playerState = await tauriPlayer.cycleRepeat()
@@ -532,6 +535,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       )
       persistCurrentPlaybackSession()
     } catch (error) {
+      set({ repeat: previousRepeat })
       console.error('Failed to cycle repeat mode', error)
       notifyError(localized('player.error.repeatUpdate'), error)
     }
