@@ -69,10 +69,12 @@ async fn record_playback_at_path(database_path: PathBuf, path: String) -> Result
     .map_err(|error| format!("Failed to join playback stat task: {error}"))?
 }
 
-async fn record_playback_best_effort(app: AppHandle, path: String) {
-    if let Err(error) = record_playback(app, path).await {
-        eprintln!("{error}");
-    }
+fn record_playback_best_effort(app: AppHandle, path: String) {
+    tauri::async_runtime::spawn(async move {
+        if let Err(error) = record_playback(app, path).await {
+            eprintln!("{error}");
+        }
+    });
 }
 
 /// Starts playback for the provided local audio file path.
@@ -88,7 +90,7 @@ pub async fn play(app: AppHandle, state: State<'_, AppState>, path: String) -> R
         audio.snapshot()
     };
     sync_output_to_state(&state, &player);
-    record_playback_best_effort(app, started_path).await;
+    record_playback_best_effort(app, started_path);
     Ok(())
 }
 
@@ -114,7 +116,7 @@ pub async fn set_queue(
         audio.snapshot()
     };
     sync_output_to_state(&state, &player);
-    record_playback_best_effort(app, started_path).await;
+    record_playback_best_effort(app, started_path);
     Ok(player_state_from_snapshot(player))
 }
 
@@ -147,7 +149,7 @@ pub async fn next_track(app: AppHandle, state: State<'_, AppState>) -> Result<Pl
     sync_output_to_state(&state, &player);
     if matches!(player.status, crate::types::PlayStatus::Playing) {
         if let Some(path) = &player.current_track {
-            record_playback_best_effort(app, path.clone()).await;
+            record_playback_best_effort(app, path.clone());
         }
     }
     Ok(player_state_from_snapshot(player))
@@ -169,7 +171,7 @@ pub async fn previous_track(
     sync_output_to_state(&state, &player);
     if matches!(player.status, crate::types::PlayStatus::Playing) {
         if let Some(path) = &player.current_track {
-            record_playback_best_effort(app, path.clone()).await;
+            record_playback_best_effort(app, path.clone());
         }
     }
     Ok(player_state_from_snapshot(player))
