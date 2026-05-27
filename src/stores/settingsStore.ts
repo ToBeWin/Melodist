@@ -15,6 +15,8 @@ type SettingsErrorTitleKey =
   | 'removeDirectory'
   | 'replayGain'
   | 'save'
+  | 'volume'
+  | 'watchDirectories'
 
 interface SettingsStore {
   appLanguage: AppLanguage
@@ -97,6 +99,8 @@ const settingsErrorTitles: Record<AppLanguage, Record<SettingsErrorTitleKey, str
     removeDirectory: 'Directory removal failed',
     replayGain: 'ReplayGain update failed',
     save: 'Settings failed to save',
+    volume: 'Volume restore failed',
+    watchDirectories: 'Library watcher setup failed',
   },
   'zh-CN': {
     audioDevice: '音频输出更新失败',
@@ -106,6 +110,8 @@ const settingsErrorTitles: Record<AppLanguage, Record<SettingsErrorTitleKey, str
     removeDirectory: '目录移除失败',
     replayGain: 'ReplayGain 更新失败',
     save: '设置保存失败',
+    volume: '音量恢复失败',
+    watchDirectories: '曲库监听启动失败',
   },
 }
 
@@ -118,22 +124,51 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   audioOutputDevices: [],
   dataLocations: null,
   load: async () => {
+    let settings: AppSettings
     try {
-      const settings = await tauriSettings.load()
-      const volume = clampVolume(settings.volume)
-      set({
-        ...settings,
-        appLanguage: normalizeAppLanguage(settings.appLanguage),
-        playbackRepeat: normalizeRepeat(settings.playbackRepeat),
-        volume,
-      })
-      await tauriPlayer.setVolume(volume)
-      await tauriPlayer.setReplayGainEnabled(settings.replayGainEnabled)
-      await tauriPlayer.setAudioOutputDevice(settings.audioOutputDevice)
-      await tauriLibrary.watchDirectories(settings.musicDirectories)
+      settings = await tauriSettings.load()
     } catch (error) {
       console.error('Failed to load settings', error)
       notifyError(localizedSettingsErrorTitle('load'), error)
+      return
+    }
+
+    const volume = clampVolume(settings.volume)
+    set({
+      ...settings,
+      appLanguage: normalizeAppLanguage(settings.appLanguage),
+      playbackRepeat: normalizeRepeat(settings.playbackRepeat),
+      volume,
+    })
+
+    try {
+      await tauriPlayer.setVolume(volume)
+    } catch (error) {
+      console.error('Failed to restore volume', error)
+      notifyError(localizedSettingsErrorTitle('volume'), error)
+    }
+
+    try {
+      await tauriPlayer.setReplayGainEnabled(settings.replayGainEnabled)
+    } catch (error) {
+      console.error('Failed to restore ReplayGain', error)
+      notifyError(localizedSettingsErrorTitle('replayGain'), error)
+    }
+
+    try {
+      await tauriPlayer.setAudioOutputDevice(settings.audioOutputDevice)
+    } catch (error) {
+      set({ audioOutputDevice: null })
+      console.error('Failed to restore audio output device', error)
+      notifyError(localizedSettingsErrorTitle('audioDevice'), error)
+      await get().save()
+    }
+
+    try {
+      await tauriLibrary.watchDirectories(settings.musicDirectories)
+    } catch (error) {
+      console.error('Failed to watch library directories', error)
+      notifyError(localizedSettingsErrorTitle('watchDirectories'), error)
     }
   },
   loadAudioOutputDevices: async () => {
