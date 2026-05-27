@@ -1,11 +1,20 @@
 import { create } from 'zustand'
 
 import { defaultSettings, tauriLibrary, tauriPlayer, tauriSettings } from '../lib/tauri'
+import { notifyError } from './toastStore'
 import type { AppLanguage, AppSettings, AudioOutputDevice, DataLocations, TranslationProvider } from '../types'
 
 type WhisperModel = AppSettings['whisperModel']
 type LyricsDisplayMode = AppSettings['lyricsDisplayMode']
 type TranslationProviderField = keyof TranslationProvider
+type SettingsErrorTitleKey =
+  | 'audioDevice'
+  | 'audioDevices'
+  | 'dataLocations'
+  | 'load'
+  | 'removeDirectory'
+  | 'replayGain'
+  | 'save'
 
 interface SettingsStore {
   appLanguage: AppLanguage
@@ -79,6 +88,31 @@ const normalizeAppLanguage = (language: string): AppLanguage => (language === 'z
 const normalizeRepeat = (repeat: string): AppSettings['playbackRepeat'] =>
   repeat === 'one' || repeat === 'all' ? repeat : 'none'
 
+const settingsErrorTitles: Record<AppLanguage, Record<SettingsErrorTitleKey, string>> = {
+  en: {
+    audioDevice: 'Audio output update failed',
+    audioDevices: 'Audio output devices failed to load',
+    dataLocations: 'Data locations failed to load',
+    load: 'Settings failed to load',
+    removeDirectory: 'Directory removal failed',
+    replayGain: 'ReplayGain update failed',
+    save: 'Settings failed to save',
+  },
+  'zh-CN': {
+    audioDevice: '音频输出更新失败',
+    audioDevices: '音频输出设备加载失败',
+    dataLocations: '数据位置加载失败',
+    load: '设置加载失败',
+    removeDirectory: '目录移除失败',
+    replayGain: 'ReplayGain 更新失败',
+    save: '设置保存失败',
+  },
+}
+
+function localizedSettingsErrorTitle(key: SettingsErrorTitleKey) {
+  return settingsErrorTitles[useSettingsStore.getState().appLanguage][key]
+}
+
 export const useSettingsStore = create<SettingsStore>((set, get) => ({
   ...defaultSettings,
   audioOutputDevices: [],
@@ -99,6 +133,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       await tauriLibrary.watchDirectories(settings.musicDirectories)
     } catch (error) {
       console.error('Failed to load settings', error)
+      notifyError(localizedSettingsErrorTitle('load'), error)
     }
   },
   loadAudioOutputDevices: async () => {
@@ -107,6 +142,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       set({ audioOutputDevices })
     } catch (error) {
       console.error('Failed to load audio output devices', error)
+      notifyError(localizedSettingsErrorTitle('audioDevices'), error)
     }
   },
   loadDataLocations: async () => {
@@ -115,6 +151,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       set({ dataLocations })
     } catch (error) {
       console.error('Failed to load data locations', error)
+      notifyError(localizedSettingsErrorTitle('dataLocations'), error)
     }
   },
   setAppLanguage: async (language) => {
@@ -135,6 +172,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       await tauriLibrary.removeDirectory(path)
     } catch (error) {
       console.error('Failed to remove library directory', error)
+      notifyError(localizedSettingsErrorTitle('removeDirectory'), error)
     }
     await get().save()
   },
@@ -145,6 +183,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       await tauriPlayer.setReplayGainEnabled(enabled)
     } catch (error) {
       console.error('Failed to set ReplayGain', error)
+      notifyError(localizedSettingsErrorTitle('replayGain'), error)
     }
     await get().save()
   },
@@ -199,6 +238,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       await tauriPlayer.setAudioOutputDevice(deviceId)
     } catch (error) {
       console.error('Failed to set audio output device', error)
+      notifyError(localizedSettingsErrorTitle('audioDevice'), error)
     }
     await get().save()
   },
@@ -222,6 +262,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       set(saved)
     } catch (error) {
       console.error('Failed to save settings', error)
+      notifyError(localizedSettingsErrorTitle('save'), error)
     }
   },
 }))

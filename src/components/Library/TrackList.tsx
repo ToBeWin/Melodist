@@ -175,6 +175,7 @@ function TrackRow({
   const [feedback, setFeedback] = useState<'copied' | 'queued' | null>(null)
   const actionsButtonRef = useRef<HTMLButtonElement>(null)
   const actionsMenuRef = useRef<HTMLDivElement>(null)
+  const feedbackTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null)
   const title = track.title ?? t('common.unknownTitle')
   const activityLabel =
     track.playCount > 0
@@ -183,8 +184,14 @@ function TrackRow({
         ? t('track.activity.played')
         : t('track.activity.unplayed')
   const showFeedback = (nextFeedback: 'copied' | 'queued') => {
+    if (feedbackTimerRef.current) {
+      window.clearTimeout(feedbackTimerRef.current)
+    }
     setFeedback(nextFeedback)
-    window.setTimeout(() => setFeedback(null), 1200)
+    feedbackTimerRef.current = window.setTimeout(() => {
+      feedbackTimerRef.current = null
+      setFeedback(null)
+    }, 1200)
   }
   const openActionsMenu = (pointer?: { x: number; y: number }) => {
     const rect = actionsButtonRef.current?.getBoundingClientRect()
@@ -192,6 +199,15 @@ function TrackRow({
     setMenuPosition(menuPositionFromRect(rect, pointer))
     setActionsOpen(true)
   }
+
+  useEffect(() => {
+    return () => {
+      if (feedbackTimerRef.current) {
+        window.clearTimeout(feedbackTimerRef.current)
+        feedbackTimerRef.current = null
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (!actionsOpen) return undefined

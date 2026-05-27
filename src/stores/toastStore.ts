@@ -16,11 +16,21 @@ interface ToastStore {
   pushToast: (toast: Omit<ToastMessage, 'id'>) => void
 }
 
+const toastTimers = new Map<string, ReturnType<typeof window.setTimeout>>()
+
 function nextToastId() {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return crypto.randomUUID()
   }
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
+function clearToastTimer(id: string) {
+  const timer = toastTimers.get(id)
+  if (timer) {
+    window.clearTimeout(timer)
+    toastTimers.delete(id)
+  }
 }
 
 export function errorMessage(error: unknown) {
@@ -29,13 +39,26 @@ export function errorMessage(error: unknown) {
 
 export const useToastStore = create<ToastStore>((set, get) => ({
   toasts: [],
-  dismissToast: (id) => set((state) => ({ toasts: state.toasts.filter((toast) => toast.id !== id) })),
+  dismissToast: (id) => {
+    clearToastTimer(id)
+    set((state) => ({ toasts: state.toasts.filter((toast) => toast.id !== id) }))
+  },
   pushToast: (toast) => {
     const id = nextToastId()
-    set((state) => ({ toasts: [...state.toasts, { ...toast, id }].slice(-4) }))
-    window.setTimeout(() => {
+    set((state) => {
+      const toasts = [...state.toasts, { ...toast, id }].slice(-4)
+      const visibleIds = new Set(toasts.map((visibleToast) => visibleToast.id))
+      for (const previousToast of state.toasts) {
+        if (!visibleIds.has(previousToast.id)) {
+          clearToastTimer(previousToast.id)
+        }
+      }
+      return { toasts }
+    })
+    const timer = window.setTimeout(() => {
       get().dismissToast(id)
     }, 5_000)
+    toastTimers.set(id, timer)
   },
 }))
 
