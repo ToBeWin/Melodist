@@ -129,16 +129,44 @@ function previousLocalIndex(state: PlayerStore) {
   return state.repeat === 'all' ? state.queue.length - 1 : null
 }
 
+interface QueueSnapshot {
+  currentIndex: number | null
+  positionMs: number
+  queue: Track[]
+  repeat: PlayerStore['repeat']
+  shuffle: boolean
+}
+
 async function syncQueue(queue: Track[], currentIndex: number | null) {
-  if (currentIndex === null || queue.length === 0) return
+  if (currentIndex === null || queue.length === 0) return true
   try {
     await tauriPlayer.updateQueue(
       queue.map((queueTrack) => queueTrack.path),
       currentIndex,
     )
+    return true
   } catch (error) {
     console.error('Failed to sync queue', error)
     notifyError(localized('player.error.queueUpdate'), error)
+    return false
+  }
+}
+
+function restoreQueueSnapshot(snapshot: QueueSnapshot) {
+  usePlayerStore.setState({
+    queue: snapshot.queue,
+    currentIndex: snapshot.currentIndex,
+  })
+  persistPlaybackSession(snapshot.queue, snapshot.currentIndex, snapshot.positionMs, snapshot.shuffle, snapshot.repeat)
+}
+
+function queueSnapshot(state: PlayerStore): QueueSnapshot {
+  return {
+    currentIndex: state.currentIndex,
+    positionMs: state.positionMs,
+    queue: state.queue,
+    repeat: state.repeat,
+    shuffle: state.shuffle,
   }
 }
 
@@ -250,14 +278,18 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   },
   addToQueue: async (track) => {
     const state = get()
+    const previousQueue = queueSnapshot(state)
     const nextQueue = queueAfterAppendingTrack(state.queue, state.currentIndex, state.currentTrack, track)
     set({ queue: nextQueue.queue, currentIndex: nextQueue.currentIndex })
     persistPlaybackSession(nextQueue.queue, nextQueue.currentIndex, state.positionMs, state.shuffle, state.repeat)
     openQueuePanel()
-    await syncQueue(nextQueue.queue, nextQueue.currentIndex)
+    if (!(await syncQueue(nextQueue.queue, nextQueue.currentIndex))) {
+      restoreQueueSnapshot(previousQueue)
+    }
   },
   playNext: async (track) => {
     const state = get()
+    const previousQueue = queueSnapshot(state)
     const insertIndex = state.currentIndex === null ? 0 : state.currentIndex + 1
     const queue = state.queue.length > 0 ? [...state.queue] : state.currentTrack ? [state.currentTrack] : []
     queue.splice(insertIndex, 0, track)
@@ -265,12 +297,15 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     set({ queue, currentIndex })
     persistPlaybackSession(queue, currentIndex, state.positionMs, state.shuffle, state.repeat)
     openQueuePanel()
-    await syncQueue(queue, currentIndex)
+    if (!(await syncQueue(queue, currentIndex))) {
+      restoreQueueSnapshot(previousQueue)
+    }
   },
   removeFromQueue: async (index) => {
     const state = get()
     if (index < 0 || index >= state.queue.length) return
 
+    const previousQueue = queueSnapshot(state)
     const nextQueue = queueAfterRemovingIndex(state.queue, state.currentIndex, index, state.currentTrack)
     const removedCurrent = state.currentIndex === index
     const keptCurrentTrack =
@@ -286,7 +321,9 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
 
     set({ queue: nextQueue.queue, currentIndex: nextQueue.currentIndex })
     persistPlaybackSession(nextQueue.queue, nextQueue.currentIndex, state.positionMs, state.shuffle, state.repeat)
-    await syncQueue(nextQueue.queue, nextQueue.currentIndex)
+    if (!(await syncQueue(nextQueue.queue, nextQueue.currentIndex))) {
+      restoreQueueSnapshot(previousQueue)
+    }
   },
   moveQueueTrack: async (index, direction) => {
     const targetIndex = index + direction
@@ -296,6 +333,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     const state = get()
     if (index < 0 || targetIndex < 0 || index >= state.queue.length || targetIndex >= state.queue.length || index === targetIndex) return
 
+    const previousQueue = queueSnapshot(state)
     const queue = [...state.queue]
     const [track] = queue.splice(index, 1)
     if (!track) return
@@ -305,18 +343,24 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
 
     set({ queue, currentIndex })
     persistPlaybackSession(queue, currentIndex, state.positionMs, state.shuffle, state.repeat)
-    await syncQueue(queue, currentIndex)
+    if (!(await syncQueue(queue, currentIndex))) {
+      restoreQueueSnapshot(previousQueue)
+    }
   },
   clearPlayedFromQueue: async () => {
     const state = get()
+    const previousQueue = queueSnapshot(state)
     const nextQueue = queueAfterClearingPlayed(state.queue, state.currentIndex)
     if (nextQueue.queue === state.queue) return
     set({ queue: nextQueue.queue, currentIndex: nextQueue.currentIndex })
     persistPlaybackSession(nextQueue.queue, nextQueue.currentIndex, state.positionMs, state.shuffle, state.repeat)
-    await syncQueue(nextQueue.queue, nextQueue.currentIndex)
+    if (!(await syncQueue(nextQueue.queue, nextQueue.currentIndex))) {
+      restoreQueueSnapshot(previousQueue)
+    }
   },
   clearQueue: async () => {
     const state = get()
+    const previousQueue = queueSnapshot(state)
     if (!state.currentTrack) {
       set({ queue: [], currentIndex: null })
       persistPlaybackSession([], null, 0, state.shuffle, state.repeat)
@@ -325,7 +369,9 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     const queue = [state.currentTrack]
     set({ queue, currentIndex: 0 })
     persistPlaybackSession(queue, 0, state.positionMs, state.shuffle, state.repeat)
-    await syncQueue(queue, 0)
+    if (!(await syncQueue(queue, 0))) {
+      restoreQueueSnapshot(previousQueue)
+    }
   },
   nextTrack: async () => {
     const state = get()
