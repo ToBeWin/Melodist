@@ -49,7 +49,8 @@ fn validate_scan_path(path: &str) -> Result<PathBuf, String> {
     if !path.is_dir() {
         return Err(format!("Directory does not exist: {}", path.display()));
     }
-    Ok(path)
+    path.canonicalize()
+        .map_err(|error| format!("Failed to resolve directory path: {error}"))
 }
 
 fn validate_track_file_path(path: &str) -> Result<PathBuf, String> {
@@ -308,7 +309,7 @@ where
             )?;
             result
                 .imported_directories
-                .push(path.to_string_lossy().to_string());
+                .push(imported_directory_path(path));
             merge_scan_result(&mut result, scan_result);
             continue;
         }
@@ -477,6 +478,13 @@ fn merge_scan_result(result: &mut ScanResult, next: ScanResult) {
     }
 }
 
+fn imported_directory_path(path: &Path) -> String {
+    path.canonicalize()
+        .unwrap_or_else(|_| path.to_path_buf())
+        .to_string_lossy()
+        .to_string()
+}
+
 fn push_scan_failure(result: &mut ScanResult, path: String, reason: String) {
     result.failed += 1;
     if result.failures.len() < 12 {
@@ -583,7 +591,10 @@ mod tests {
     use std::sync::atomic::{AtomicU64, Ordering};
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    use super::{directory_signature, import_lrc_sidecar_file, matching_audio_path_for_lrc};
+    use super::{
+        directory_signature, import_lrc_sidecar_file, imported_directory_path,
+        matching_audio_path_for_lrc,
+    };
     use crate::library::scanner::ScanResult;
 
     static TEMP_DIR_COUNTER: AtomicU64 = AtomicU64::new(0);
@@ -639,6 +650,21 @@ mod tests {
         fs::write(&lrc_path, "[00:01.00]Line").expect("write lrc file");
 
         assert_eq!(matching_audio_path_for_lrc(&lrc_path), Some(audio_path));
+
+        fs::remove_dir_all(&root).expect("cleanup temp signature directory");
+    }
+
+    #[test]
+    fn imported_directory_path_uses_canonical_path_when_available() {
+        let root = temp_signature_dir();
+        fs::create_dir_all(&root).expect("temp signature directory");
+
+        assert_eq!(
+            imported_directory_path(&root),
+            root.canonicalize()
+                .expect("canonical temp signature directory")
+                .to_string_lossy()
+        );
 
         fs::remove_dir_all(&root).expect("cleanup temp signature directory");
     }
