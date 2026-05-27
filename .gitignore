@@ -3,6 +3,7 @@ node_modules/
 
 # Frontend build output
 dist/
+outputs/
 
 # Tauri / Rust build output
 src-tauri/target/
@@ -23,4 +24,3 @@ yarn-error.log*
 .env
 .env.*
 !.env.example
-
