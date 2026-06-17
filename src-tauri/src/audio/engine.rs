@@ -3,7 +3,7 @@
 use std::fs::File;
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use rodio::{Decoder, Source};
 use thiserror::Error;
@@ -98,6 +98,8 @@ pub struct AudioEngine {
     started_position_ms: u64,
     queue: Vec<String>,
     current_index: Option<usize>,
+    shuffle_order: Vec<usize>,
+    shuffle_cursor: Option<usize>,
 }
 
 impl AudioEngine {
@@ -108,6 +110,7 @@ impl AudioEngine {
 
         self.queue = vec![path.clone()];
         self.current_index = Some(0);
+        self.reset_shuffle_order();
         self.start_track(path);
         Ok(())
     }
@@ -125,6 +128,7 @@ impl AudioEngine {
         let path = paths[start_index].clone();
         self.queue = paths;
         self.current_index = Some(start_index);
+        self.reset_shuffle_order();
         self.start_track(path);
         Ok(())
     }
@@ -156,6 +160,7 @@ impl AudioEngine {
 
         self.queue = paths;
         self.current_index = Some(current_index);
+        self.reset_shuffle_order();
         Ok(())
     }
 
@@ -251,6 +256,7 @@ impl AudioEngine {
     /// Toggles shuffle mode for subsequent queue navigation.
     pub fn toggle_shuffle(&mut self) {
         self.snapshot.shuffle = !self.snapshot.shuffle;
+        self.reset_shuffle_order();
     }
 
     /// Cycles repeat mode through none, all, and one.
@@ -350,7 +356,7 @@ impl AudioEngine {
         self.started_position_ms = 0;
     }
 
-    fn next_index(&self) -> Option<usize> {
+    fn next_index(&mut self) -> Option<usize> {
         if self.queue.is_empty() {
             return None;
         }
@@ -361,7 +367,7 @@ impl AudioEngine {
         }
 
         if self.snapshot.shuffle && self.queue.len() > 1 {
-            return Some((current_index + shuffle_step(self.queue.len())) % self.queue.len());
+            return self.next_shuffle_index(current_index);
         }
 
         let next_index = current_index.saturating_add(1);
@@ -374,7 +380,7 @@ impl AudioEngine {
         }
     }
 
-    fn previous_index(&self) -> Option<usize> {
+    fn previous_index(&mut self) -> Option<usize> {
         if self.queue.is_empty() {
             return None;
         }
@@ -385,10 +391,7 @@ impl AudioEngine {
         }
 
         if self.snapshot.shuffle && self.queue.len() > 1 {
-            return Some(
-                (current_index + self.queue.len() - shuffle_step(self.queue.len()))
-                    % self.queue.len(),
-            );
+            return self.previous_shuffle_index(current_index);
         }
 
         if current_index > 0 {
@@ -441,6 +444,97 @@ impl AudioEngine {
 
         true
     }
+
+    fn reset_shuffle_order(&mut self) {
+        self.shuffle_order.clear();
+        self.shuffle_cursor = None;
+
+        if !self.snapshot.shuffle || self.queue.is_empty() {
+            return;
+        }
+
+        self.rebuild_shuffle_order();
+    }
+
+    fn rebuild_shuffle_order(&mut self) {
+        self.shuffle_order = (0..self.queue.len()).collect();
+        shuffle_indices(&mut self.shuffle_order);
+
+        let Some(current_index) = self.current_index else {
+            self.shuffle_cursor = None;
+            return;
+        };
+
+        if let Some(cursor) = self
+            .shuffle_order
+            .iter()
+            .position(|index| *index == current_index)
+        {
+            self.shuffle_order.swap(0, cursor);
+            self.shuffle_cursor = Some(0);
+        } else {
+            self.shuffle_cursor = None;
+        }
+    }
+
+    fn ensure_shuffle_cursor(&mut self, current_index: usize) -> Option<usize> {
+        let needs_rebuild = self.shuffle_order.len() != self.queue.len()
+            || !self.shuffle_order.contains(&current_index);
+
+        if needs_rebuild {
+            self.rebuild_shuffle_order();
+        }
+
+        let cursor = self
+            .shuffle_cursor
+            .filter(|cursor| self.shuffle_order.get(*cursor) == Some(&current_index))
+            .or_else(|| {
+                self.shuffle_order
+                    .iter()
+                    .position(|index| *index == current_index)
+            })?;
+        self.shuffle_cursor = Some(cursor);
+        Some(cursor)
+    }
+
+    fn next_shuffle_index(&mut self, current_index: usize) -> Option<usize> {
+        let cursor = self.ensure_shuffle_cursor(current_index)?;
+        let next_cursor = cursor.saturating_add(1);
+
+        if let Some(next_index) = self.shuffle_order.get(next_cursor).copied() {
+            self.shuffle_cursor = Some(next_cursor);
+            return Some(next_index);
+        }
+
+        if !matches!(self.snapshot.repeat, RepeatMode::All) {
+            return None;
+        }
+
+        self.rebuild_shuffle_order();
+        let next_index = self.shuffle_order.get(1).copied()?;
+        self.shuffle_cursor = Some(1);
+        Some(next_index)
+    }
+
+    fn previous_shuffle_index(&mut self, current_index: usize) -> Option<usize> {
+        let cursor = self.ensure_shuffle_cursor(current_index)?;
+
+        if cursor > 0 {
+            let previous_cursor = cursor - 1;
+            let previous_index = self.shuffle_order.get(previous_cursor).copied()?;
+            self.shuffle_cursor = Some(previous_cursor);
+            return Some(previous_index);
+        }
+
+        if !matches!(self.snapshot.repeat, RepeatMode::All) {
+            return None;
+        }
+
+        let previous_cursor = self.shuffle_order.len().checked_sub(1)?;
+        let previous_index = self.shuffle_order.get(previous_cursor).copied()?;
+        self.shuffle_cursor = Some(previous_cursor);
+        Some(previous_index)
+    }
 }
 
 fn normalize_queue(paths: Vec<String>) -> Result<Vec<String>, AudioError> {
@@ -455,10 +549,6 @@ fn normalize_queue(paths: Vec<String>) -> Result<Vec<String>, AudioError> {
     } else {
         Ok(paths)
     }
-}
-
-fn shuffle_step(queue_len: usize) -> usize {
-    (queue_len / 2).max(1)
 }
 
 fn validate_audio_path(path: &str) -> Result<PathBuf, AudioError> {
@@ -493,6 +583,29 @@ fn clamp_position(position_ms: u64, duration_ms: u64) -> u64 {
     } else {
         position_ms.min(duration_ms)
     }
+}
+
+fn shuffle_indices(indices: &mut [usize]) {
+    let mut state = shuffle_seed();
+    for index in (1..indices.len()).rev() {
+        let swap_index = usize::try_from(next_random(&mut state)).unwrap_or(0) % (index + 1);
+        indices.swap(index, swap_index);
+    }
+}
+
+fn shuffle_seed() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .ok()
+        .and_then(|duration| u64::try_from(duration.as_nanos()).ok())
+        .unwrap_or(0x9e37_79b9_7f4a_7c15)
+}
+
+fn next_random(state: &mut u64) -> u64 {
+    *state = state
+        .wrapping_mul(6_364_136_223_846_793_005)
+        .wrapping_add(1);
+    *state
 }
 
 #[cfg(test)]
@@ -544,6 +657,44 @@ mod tests {
 
         engine.next_track().unwrap();
         assert_eq!(engine.snapshot().current_track.as_deref(), Some("one.flac"));
+    }
+
+    #[test]
+    fn shuffle_navigation_follows_randomized_order_history() {
+        let mut engine = AudioEngine::default();
+        engine
+            .set_queue(
+                vec!["one.flac".into(), "two.flac".into(), "three.flac".into()],
+                0,
+            )
+            .unwrap();
+        engine.toggle_shuffle();
+        engine.shuffle_order = vec![0, 2, 1];
+        engine.shuffle_cursor = Some(0);
+
+        engine.next_track().unwrap();
+        assert_eq!(
+            engine.snapshot().current_track.as_deref(),
+            Some("three.flac")
+        );
+
+        engine.previous_track().unwrap();
+        assert_eq!(engine.snapshot().current_track.as_deref(), Some("one.flac"));
+    }
+
+    #[test]
+    fn shuffle_without_repeat_stops_after_randomized_order_is_exhausted() {
+        let mut engine = AudioEngine::default();
+        engine
+            .set_queue(vec!["one.flac".into(), "two.flac".into()], 1)
+            .unwrap();
+        engine.toggle_shuffle();
+        engine.shuffle_order = vec![0, 1];
+        engine.shuffle_cursor = Some(1);
+
+        engine.next_track().unwrap();
+
+        assert_eq!(engine.snapshot().status, PlayStatus::Stopped);
     }
 
     #[test]
