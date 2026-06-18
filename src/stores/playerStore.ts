@@ -549,42 +549,73 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   },
   closeLyrics: () => set({ lyricsOpen: false }),
   restorePlaybackSession: async () => {
-    await useSettingsStore.getState().load()
-    await useLibraryStore.getState().loadLibrary()
-    const settings = useSettingsStore.getState()
-    const library = useLibraryStore.getState()
-    const queue = tracksFromSavedQueue(settings.playbackQueuePaths, library.tracks)
-    if (queue.length === 0) return
+    try {
+      await useSettingsStore.getState().load()
+      await useLibraryStore.getState().loadLibrary()
+      const settings = useSettingsStore.getState()
+      const library = useLibraryStore.getState()
+      const queue = tracksFromSavedQueue(settings.playbackQueuePaths, library.tracks)
+      if (queue.length === 0) return
 
-    const currentIndex =
-      settings.playbackQueueIndex !== null && settings.playbackQueueIndex >= 0 && settings.playbackQueueIndex < queue.length
-        ? settings.playbackQueueIndex
-        : 0
-    const currentTrack = queue[currentIndex] ?? queue[0]
-    if (!currentTrack) return
+      const currentIndex =
+        settings.playbackQueueIndex !== null && settings.playbackQueueIndex >= 0 && settings.playbackQueueIndex < queue.length
+          ? settings.playbackQueueIndex
+          : 0
+      const currentTrack = queue[currentIndex] ?? queue[0]
+      if (!currentTrack) return
 
-    set({
-      status: 'paused',
-      currentTrack,
-      queue,
-      currentIndex,
-      positionMs: Math.min(settings.playbackPositionMs, currentTrack.durationMs),
-      durationMs: currentTrack.durationMs,
-      shuffle: settings.playbackShuffle,
-      repeat: settings.playbackRepeat,
-    })
-    await syncQueue(queue, currentIndex)
-    if (settings.playbackShuffle) {
-      const playerState = await tauriPlayer.toggleShuffle()
-      set((state) => applyPlayerState(playerState, queue, state.currentTrack))
-    }
-    const repeatCycles = settings.playbackRepeat === 'all' ? 1 : settings.playbackRepeat === 'one' ? 2 : 0
-    for (let cycle = 0; cycle < repeatCycles; cycle += 1) {
-      const playerState = await tauriPlayer.cycleRepeat()
-      set((state) => applyPlayerState(playerState, queue, state.currentTrack))
-    }
-    if (settings.playbackPositionMs > 0) {
-      await get().seek(Math.min(settings.playbackPositionMs, currentTrack.durationMs))
+      const restoredPositionMs = Math.min(settings.playbackPositionMs, currentTrack.durationMs)
+      set({
+        status: 'paused',
+        currentTrack,
+        queue,
+        currentIndex,
+        positionMs: restoredPositionMs,
+        durationMs: currentTrack.durationMs,
+        shuffle: settings.playbackShuffle,
+        repeat: settings.playbackRepeat,
+      })
+
+      if (!(await syncQueue(queue, currentIndex))) {
+        set({
+          status: 'stopped',
+          currentTrack: null,
+          queue: [],
+          currentIndex: null,
+          positionMs: 0,
+          durationMs: 0,
+          shuffle: settings.playbackShuffle,
+          repeat: settings.playbackRepeat,
+        })
+        persistPlaybackSession([], null, 0, settings.playbackShuffle, settings.playbackRepeat)
+        return
+      }
+
+      if (settings.playbackShuffle) {
+        const playerState = await tauriPlayer.toggleShuffle()
+        set((state) => applyPlayerState(playerState, queue, state.currentTrack))
+      }
+      const repeatCycles = settings.playbackRepeat === 'all' ? 1 : settings.playbackRepeat === 'one' ? 2 : 0
+      for (let cycle = 0; cycle < repeatCycles; cycle += 1) {
+        const playerState = await tauriPlayer.cycleRepeat()
+        set((state) => applyPlayerState(playerState, queue, state.currentTrack))
+      }
+      if (restoredPositionMs > 0) {
+        await get().seek(restoredPositionMs)
+      }
+    } catch (error) {
+      const state = get()
+      set({
+        status: 'stopped',
+        currentTrack: null,
+        queue: [],
+        currentIndex: null,
+        positionMs: 0,
+        durationMs: 0,
+      })
+      persistPlaybackSession([], null, 0, state.shuffle, state.repeat)
+      console.error('Failed to restore playback session', error)
+      notifyError(localized('player.error.sessionRestore'), error)
     }
   },
 }))

@@ -110,6 +110,7 @@ type TranslationKey =
   | 'player.error.queueRecovery'
   | 'player.error.queueUpdate'
   | 'player.error.repeatUpdate'
+  | 'player.error.sessionRestore'
   | 'player.error.seek'
   | 'player.error.shuffleUpdate'
   | 'player.error.volumeUpdate'
@@ -358,6 +359,7 @@ const translations: Record<AppLanguage, Record<TranslationKey, string>> = {
     'player.error.queueRecovery': 'Queue recovery failed',
     'player.error.queueUpdate': 'Queue update failed',
     'player.error.repeatUpdate': 'Repeat update failed',
+    'player.error.sessionRestore': 'Playback restore failed',
     'player.error.seek': 'Seek failed',
     'player.error.shuffleUpdate': 'Shuffle update failed',
     'player.error.volumeUpdate': 'Volume update failed',
@@ -603,6 +605,7 @@ const translations: Record<AppLanguage, Record<TranslationKey, string>> = {
     'player.error.queueRecovery': '队列恢复失败',
     'player.error.queueUpdate': '队列更新失败',
     'player.error.repeatUpdate': '循环模式更新失败',
+    'player.error.sessionRestore': '播放会话恢复失败',
     'player.error.seek': '跳转失败',
     'player.error.shuffleUpdate': '随机播放更新失败',
     'player.error.volumeUpdate': '音量更新失败',
