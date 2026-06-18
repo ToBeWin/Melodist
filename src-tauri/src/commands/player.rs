@@ -43,6 +43,49 @@ fn unix_timestamp_now() -> i64 {
         .unwrap_or(0)
 }
 
+fn normalize_audio_output_device_id(device_id: Option<String>) -> Option<String> {
+    device_id.and_then(|id| {
+        let trimmed = id.trim();
+        if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed.to_string())
+        }
+    })
+}
+
+fn resolve_audio_output_device(device_id: &str) -> Result<cpal::Device, String> {
+    let host = cpal::default_host();
+    let devices = host
+        .output_devices()
+        .map_err(|error| format!("Failed to enumerate audio output devices: {error}"))?;
+
+    for device in devices {
+        let name = device
+            .name()
+            .map_err(|error| format!("Failed to read audio output device name: {error}"))?;
+        if name == device_id {
+            return Ok(device);
+        }
+    }
+
+    Err(format!("Audio output device is unavailable: {device_id}"))
+}
+
+fn validate_audio_output_device(device_id: Option<&str>) -> Result<(), String> {
+    let Some(device_id) = device_id else {
+        cpal::default_host()
+            .default_output_device()
+            .ok_or_else(|| "No default audio output device is available".to_string())?;
+        return Ok(());
+    };
+
+    let device = resolve_audio_output_device(device_id)?;
+    rodio::OutputStream::try_from_device(&device)
+        .map(|_| ())
+        .map_err(|error| format!("Failed to open audio output device {device_id}: {error}"))
+}
+
 async fn record_playback(app: AppHandle, path: String) -> Result<(), String> {
     let database_path = app
         .path()
@@ -265,14 +308,8 @@ pub async fn set_audio_output_device(
     state: State<'_, AppState>,
     device_id: Option<String>,
 ) -> Result<PlayerState, String> {
-    let normalized_device_id = device_id.and_then(|id| {
-        let trimmed = id.trim();
-        if trimmed.is_empty() {
-            None
-        } else {
-            Some(trimmed.to_string())
-        }
-    });
+    let normalized_device_id = normalize_audio_output_device_id(device_id);
+    validate_audio_output_device(normalized_device_id.as_deref())?;
     state.output.set_output_device(normalized_device_id);
     let player = state.audio.lock().snapshot();
     sync_output_to_state(&state, &player);
@@ -395,5 +432,33 @@ fn sync_output_to_state(state: &State<'_, AppState>, player: &crate::audio::Play
         crate::types::PlayStatus::Stopped | crate::types::PlayStatus::Loading => {
             state.inner().output.stop();
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{normalize_audio_output_device_id, resolve_audio_output_device};
+
+    #[test]
+    fn normalizes_blank_audio_output_device_to_default() {
+        assert_eq!(normalize_audio_output_device_id(None), None);
+        assert_eq!(
+            normalize_audio_output_device_id(Some("  ".to_string())),
+            None
+        );
+    }
+
+    #[test]
+    fn trims_audio_output_device_id() {
+        assert_eq!(
+            normalize_audio_output_device_id(Some(" Built-in Output ".to_string())),
+            Some("Built-in Output".to_string())
+        );
+    }
+
+    #[test]
+    fn rejects_unavailable_audio_output_device() {
+        let result = resolve_audio_output_device("__melodist_missing_audio_device__");
+        assert!(result.is_err());
     }
 }
