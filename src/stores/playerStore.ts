@@ -624,6 +624,14 @@ void onPlayerOutputError((message) => {
   if (!shouldAutoSkipOutputError(message)) return
 
   const state = usePlayerStore.getState()
+  const previousState = {
+    currentIndex: state.currentIndex,
+    currentTrack: state.currentTrack,
+    durationMs: state.durationMs,
+    positionMs: state.positionMs,
+    queue: state.queue,
+    status: 'stopped' as const,
+  }
   const recovery = queueRecoveryAfterPlaybackFailure(state.queue, state.currentIndex)
   if (!recovery) return
 
@@ -656,6 +664,8 @@ void onPlayerOutputError((message) => {
       usePlayerStore.setState((nextState) => applyPlayerState(playerState, nextState.queue, recoveryTrack))
     })
     .catch((error: unknown) => {
+      usePlayerStore.setState(previousState)
+      persistPlaybackSession(state.queue, state.currentIndex, state.positionMs, state.shuffle, state.repeat)
       console.error('Failed to recover after output error', error)
       notifyError(localized('player.error.queueRecovery'), error)
     })
