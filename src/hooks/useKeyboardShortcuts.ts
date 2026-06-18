@@ -100,9 +100,11 @@ export function runKeyboardShortcutAction<TTrack>(action: KeyboardShortcutAction
       void player.play(player.currentTrack)
       return
     case 'seekBackward':
+      if (!player.currentTrack || player.status === 'loading') return
       void player.seek(clamp(player.positionMs - SEEK_STEP_MS, 0, player.durationMs))
       return
     case 'seekForward':
+      if (!player.currentTrack || player.status === 'loading') return
       void player.seek(clamp(player.positionMs + SEEK_STEP_MS, 0, player.durationMs))
       return
     case 'volumeUp':
@@ -112,9 +114,11 @@ export function runKeyboardShortcutAction<TTrack>(action: KeyboardShortcutAction
       void player.setVolume(clamp(player.volume - VOLUME_STEP, 0, 1))
       return
     case 'nextTrack':
+      if (!player.currentTrack || player.status === 'loading') return
       void player.nextTrack()
       return
     case 'previousTrack':
+      if (!player.currentTrack || player.status === 'loading') return
       void player.previousTrack()
       return
     case 'toggleMute':
