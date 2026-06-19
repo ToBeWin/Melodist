@@ -54,6 +54,11 @@ export function NowPlayingView() {
     currentIndex === null
       ? queueSource.filter((track) => track.id !== currentTrack.id).slice(0, 4)
       : queueSource.slice(currentIndex + 1, currentIndex + 5)
+  const playQueueTrack = (track: Track) => {
+    const queueIndex = queueSource.findIndex((queueTrack) => queueTrack.id === track.id)
+    if (queueIndex < 0) return
+    void setQueueAndPlay(queueSource, queueIndex)
+  }
 
   return (
     <section className="now-playing-view" aria-label={t('app.nowPlaying')}>
@@ -138,7 +143,7 @@ export function NowPlayingView() {
               className="queue-row"
               key={track.id}
               type="button"
-              onClick={() => void setQueueAndPlay(queueSource, queueSource.findIndex((queueTrack) => queueTrack.id === track.id))}
+              onClick={() => playQueueTrack(track)}
             >
               <span>{index + 1}</span>
               <div>
