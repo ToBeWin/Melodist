@@ -51,9 +51,10 @@ export function PlayerBar() {
   const draftPositionMs = draftSeek && draftSeek.trackId === currentTrack?.id ? draftSeek.positionMs : null
   const displayedPositionMs = Math.min(draftPositionMs ?? positionMs, durationMs)
   const volumeLabel = volume > 0 ? t('player.mute') : t('player.unmute')
+  const isTransportDisabled = !currentTrack || status === 'loading'
 
   const handlePrimaryPlayback = () => {
-    if (!currentTrack) return
+    if (isTransportDisabled) return
     if (status === 'playing' || status === 'paused') {
       void pause()
       return
@@ -116,19 +117,19 @@ export function PlayerBar() {
           <button aria-pressed={shuffle} aria-label={t('player.shuffle')} className={shuffle ? 'active' : ''} type="button" onClick={() => void toggleShuffle()}>
             <Shuffle size={18} />
           </button>
-          <button aria-label={t('player.previous')} disabled={!currentTrack} type="button" onClick={() => void previousTrack()}>
+          <button aria-label={t('player.previous')} disabled={isTransportDisabled} type="button" onClick={() => void previousTrack()}>
             <SkipBack size={18} />
           </button>
           <button
             aria-label={isPlaying ? t('player.pause') : t('player.play')}
             className="play-button"
-            disabled={!currentTrack}
+            disabled={isTransportDisabled}
             type="button"
             onClick={handlePrimaryPlayback}
           >
             {isPlaying ? <Pause size={22} fill="currentColor" /> : <Play size={22} fill="currentColor" />}
           </button>
-          <button aria-label={t('player.next')} disabled={!currentTrack} type="button" onClick={() => void nextTrack()}>
+          <button aria-label={t('player.next')} disabled={isTransportDisabled} type="button" onClick={() => void nextTrack()}>
             <SkipForward size={18} />
           </button>
           <button aria-label={t('player.repeat', { mode: repeat })} className={repeat !== 'none' ? 'active' : ''} type="button" onClick={() => void cycleRepeat()}>
@@ -145,7 +146,7 @@ export function PlayerBar() {
             ) : null}
             <input
               aria-label={t('player.progress')}
-              disabled={!currentTrack}
+              disabled={isTransportDisabled}
               max={durationMs}
               min={0}
               title={hoverSeek ? formatDurationMs(hoverSeek.positionMs) : undefined}
