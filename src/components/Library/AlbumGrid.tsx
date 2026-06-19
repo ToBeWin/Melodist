@@ -23,6 +23,9 @@ function AlbumArtwork({ album }: { album: Album }) {
         <img
           alt=""
           src={coverUrl}
+          onLoad={(event) => {
+            event.currentTarget.style.display = ''
+          }}
           onError={(event) => {
             event.currentTarget.style.display = 'none'
           }}
