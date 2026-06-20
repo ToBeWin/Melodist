@@ -37,6 +37,7 @@ export function NowPlayingView() {
   const tracks = useLibraryStore((state) => state.filteredTracks)
   const queueSource = playerQueue.length > 0 ? playerQueue : tracks
   const isPlaying = status === 'playing'
+  const isTransportDisabled = status === 'loading'
   const coverUrl = toAssetUrl(currentTrack?.coverCachePath)
 
   if (!currentTrack) {
@@ -87,8 +88,10 @@ export function NowPlayingView() {
           <button
             aria-label={isPlaying ? t('player.pause') : t('player.play')}
             className="now-play-button"
+            disabled={isTransportDisabled}
             type="button"
             onClick={() => {
+              if (isTransportDisabled) return
               if (status === 'playing' || status === 'paused') {
                 void pause()
                 return

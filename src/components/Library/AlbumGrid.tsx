@@ -73,6 +73,7 @@ function AlbumTile({ album, onOpen }: AlbumTileProps) {
 function AlbumDetail({ album, onBack }: { album: Album; onBack: () => void }) {
   const { t } = useI18n()
   const setQueueAndPlay = usePlayerStore((state) => state.setQueueAndPlay)
+  const firstTrack = album.tracks[0] ?? null
   const durationMs = album.tracks.reduce((total, track) => total + track.durationMs, 0)
 
   return (
@@ -87,7 +88,14 @@ function AlbumDetail({ album, onBack }: { album: Album; onBack: () => void }) {
           <p>{t('app.albums')}</p>
           <h2>{album.name}</h2>
           <span>{[album.artist ?? t('common.unknownArtist'), t('album.trackCount', { count: album.trackCount, unit: 'tracks' }), formatDurationMs(durationMs)].join(' · ')}</span>
-          <button className="primary-action" type="button" onClick={() => void setQueueAndPlay(album.tracks, 0)}>
+          <button
+            className="primary-action"
+            disabled={!firstTrack}
+            type="button"
+            onClick={() => {
+              if (firstTrack) void setQueueAndPlay(album.tracks, 0)
+            }}
+          >
             <Play size={16} fill="currentColor" />
             {t('album.play', { name: album.name })}
           </button>
